@@ -30,6 +30,8 @@ prohlížeč (počítač i mobil).
 ## Rychlý start
 
 ```bash
+git clone https://github.com/totosoftsro/skladappka.git
+cd skladappka
 npm install
 npm start
 ```

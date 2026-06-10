@@ -6,6 +6,11 @@
   "type": "commonjs",
   "private": true,
   "license": "MIT",
+  "author": "TOTOSOFT s.r.o.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totosoftsro/skladappka.git"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node --test test/smoke.test.js"
