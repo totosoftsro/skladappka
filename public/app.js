@@ -133,9 +133,11 @@ function setMode(m) {
   if (m === 'out') document.body.classList.add('mode-out');
   if (m === 'set') document.body.classList.add('mode-set');
   $('#step-label').textContent = m === 'set' ? 'na' : 'po';
+  const h = new Date().getHours();
+  const greet = h < 9 ? 'Dobré ráno!' : h < 12 ? 'Pěkné dopoledne!' : h < 18 ? 'Pěkné odpoledne!' : 'Dobrý večer!';
   $('#hint').textContent = m === 'set'
-    ? 'Inventura: naskenuj kód a nastav skutečný počet kusů na skladě.'
-    : 'Jen naskenuj kód čtečkou — appka pozná konec skenu sama, Enter mačkat nemusíš.';
+    ? 'Inventura: naskenuj kód a zapiš skutečný stav — appka srovná rozdíl sama.'
+    : `${greet} Stačí naskenovat kód — konec skenu pozná appka sama, Enter netřeba.`;
   focusScan();
 }
 $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -231,7 +233,7 @@ async function loadItems() {
 function renderItems() {
   const tb = $('#items');
   $('#empty').classList.toggle('hidden', state.items.length > 0);
-  if (!state.items.length) $('#empty-text').textContent = state.q || state.filter !== 'all' ? 'Nic neodpovídá filtru.' : 'Sklad je zatím prázdný.';
+  if (!state.items.length) $('#empty-text').textContent = state.q || state.filter !== 'all' ? 'Nic neodpovídá filtru.' : 'Zatím tu nic není.';
   tb.innerHTML = state.items.map((it) => {
     const dot = statusDot(it);
     const u = esc(it.unit || 'ks');

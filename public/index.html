@@ -6,11 +6,11 @@
   <title>Sklad — evidence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=1.0.1" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4f46e5" />
+  <meta name="theme-color" content="#347d4f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Sklad" />
 </head>
@@ -139,8 +139,8 @@
           </div>
           <div id="empty" class="empty hidden">
             <svg class="empty-ico" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
-            <div id="empty-text">Sklad je zatím prázdný.</div>
-            <div class="empty-sub">Naskenuj první čárový kód nahoře.</div>
+            <div id="empty-text">Zatím tu nic není.</div>
+            <div class="empty-sub">Naskenuj první kód a sklad se začne plnit.</div>
           </div>
         </div>
       </section>
@@ -172,7 +172,7 @@
 
   <div id="overlay" class="overlay hidden"><div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modal-body"></div></div></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="barcode.js?v=1.0.0"></script>
-  <script src="app.js?v=1.0.0"></script>
+  <script src="barcode.js?v=1.0.1"></script>
+  <script src="app.js?v=1.0.1"></script>
 </body>
 </html>
