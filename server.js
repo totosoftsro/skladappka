@@ -46,7 +46,11 @@ app.use((req, res, next) => {
 app.use(compression());
 app.use(express.json({ limit: '20mb' }));
 app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
-app.use(express.static(path.join(__dirname, 'public')));
+// no-cache = prohlížeč si soubor vždy ověří přes ETag (304 = levné) → po update serveru
+// nikdy nemíchá staré CSS/JS s novým HTML
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+}));
 
 initDb();
 auth.cleanupSessions();
