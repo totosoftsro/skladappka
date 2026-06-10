@@ -1,0 +1,9 @@
+# závislosti
+node_modules/
+
+# data – živá databáze do repozitáře nepatří
+data/
+
+# systémové
+.DS_Store
+*.log

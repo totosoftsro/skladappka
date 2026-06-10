@@ -1,0 +1,22 @@
+{
+  "name": "skladappka",
+  "version": "1.0.0",
+  "description": "Skladová evidence s napojením na USB čtečku čárových kódů a automatickým vyhledáváním názvů zboží podle kódu na internetu.",
+  "main": "server.js",
+  "type": "commonjs",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/smoke.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "compression": "^1.7.5",
+    "express": "^4.21.2",
+    "nodemailer": "^8.0.10"
+  }
+}
