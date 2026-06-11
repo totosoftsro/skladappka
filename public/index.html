@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.2" />
+  <link rel="stylesheet" href="style.css?v=1.0.3" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#347d4f" />
@@ -27,11 +27,11 @@
     </div>
 
     <nav class="nav" aria-label="Hlavní navigace">
-      <button class="nav-item active" data-view="inventory">
+      <button class="nav-item active" data-view="inventory" aria-label="Sklad">
         <svg class="ico" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         <span>Sklad</span>
       </button>
-      <button class="nav-item" data-view="history">
+      <button class="nav-item" data-view="history" aria-label="Historie pohybů">
         <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         <span>Historie</span>
       </button>
@@ -53,14 +53,14 @@
     <!-- HERO: skenovací pult -->
     <section class="hero">
       <div class="hero-inner">
-        <div class="seg" role="tablist" aria-label="Režim">
-          <button class="seg-btn active" data-mode="in">
+        <div class="seg" role="group" aria-label="Režim skenování">
+          <button class="seg-btn active" data-mode="in" aria-pressed="true">
             <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg> Příjem
           </button>
-          <button class="seg-btn" data-mode="out">
+          <button class="seg-btn" data-mode="out" aria-pressed="false">
             <svg class="ico" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg> Výdej
           </button>
-          <button class="seg-btn" data-mode="set">
+          <button class="seg-btn" data-mode="set" aria-pressed="false">
             <svg class="ico" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="m9 14 2 2 4-4"/></svg> Inventura
           </button>
         </div>
@@ -78,7 +78,7 @@
         </div>
 
         <p class="scan-hint" id="hint">Stačí naskenovat kód — konec skenu pozná appka sama.</p>
-        <div id="lastscan" class="lastscan hidden"></div>
+        <div id="lastscan" class="lastscan hidden" aria-live="polite"></div>
       </div>
     </section>
 
@@ -104,7 +104,7 @@
         <div class="toolbar-right">
           <div class="searchbox">
             <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="search" type="search" placeholder="Hledat ve skladu…" />
+            <input id="search" type="search" placeholder="Hledat ve skladu…" aria-label="Hledat ve skladu" />
           </div>
           <details class="menu" id="export-menu">
             <summary class="btn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Export <svg class="ico chev-sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
@@ -127,12 +127,12 @@
               <tr>
                 <th class="c-st"></th>
                 <th class="c-img"></th>
-                <th class="c-code sortable" data-sort="code">Kód</th>
-                <th class="c-name sortable" data-sort="name">Název</th>
+                <th class="c-code sortable" data-sort="code" tabindex="0" role="button" aria-label="Řadit podle kódu">Kód</th>
+                <th class="c-name sortable" data-sort="name" tabindex="0" role="button" aria-label="Řadit podle názvu">Název</th>
                 <th class="c-loc">Umístění</th>
-                <th class="c-qty sortable" data-sort="quantity">Množství</th>
+                <th class="c-qty sortable" data-sort="quantity" tabindex="0" role="button" aria-label="Řadit podle množství">Množství</th>
                 <th class="c-min">Min.</th>
-                <th class="c-price sortable" data-sort="price">Cena/ks</th>
+                <th class="c-price sortable" data-sort="price" tabindex="0" role="button" aria-label="Řadit podle ceny">Cena/ks</th>
                 <th class="c-act"></th>
               </tr>
             </thead>
@@ -173,7 +173,7 @@
 
   <div id="overlay" class="overlay hidden"><div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modal-body"></div></div></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="barcode.js?v=1.0.2"></script>
-  <script src="app.js?v=1.0.2"></script>
+  <script src="barcode.js?v=1.0.3"></script>
+  <script src="app.js?v=1.0.3"></script>
 </body>
 </html>

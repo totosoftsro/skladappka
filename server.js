@@ -44,8 +44,22 @@ app.use((req, res, next) => {
 });
 
 app.use(compression());
-app.use(express.json({ limit: '20mb' }));
-app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+// Tělo: malý limit globálně, velký jen pro obnovu zálohy (a GET/HEAD vůbec neparsujeme)
+const jsonSmall = express.json({ limit: '256kb' });
+const jsonLarge = express.json({ limit: '64mb' });
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') return next();
+  return (req.path === '/api/restore' ? jsonLarge : jsonSmall)(req, res, next);
+});
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  // CSRF obrana navíc k SameSite=Lax: měnící požadavky musí mít shodný Origin/Referer host
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    const o = req.get('origin') || req.get('referer');
+    if (o) { try { if (new URL(o).host !== req.get('host')) return res.status(403).json({ error: 'Neplatný původ požadavku' }); } catch { return res.status(403).json({ error: 'Neplatný původ požadavku' }); } }
+  }
+  next();
+});
 // no-cache = prohlížeč si soubor vždy ověří přes ETag (304 = levné) → po update serveru
 // nikdy nemíchá staré CSS/JS s novým HTML
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -76,18 +90,24 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 // ---- Omezení pokusů o přihlášení (brute-force) – per IP i per uživatel ----
 const loginHits = new Map(); // key -> { count, ts }
 const WINDOW = 15 * 60000, MAX_FAILS = 10;
+function sweepLoginHits() { const now = Date.now(); for (const [k, r] of loginHits) if (now - r.ts >= WINDOW) loginHits.delete(k); }
 function loginBlocked(key) { const r = loginHits.get(key); return !!(r && Date.now() - r.ts < WINDOW && r.count >= MAX_FAILS); }
-function recordFail(key) { const r = loginHits.get(key); if (r && Date.now() - r.ts < WINDOW) r.count++; else loginHits.set(key, { count: 1, ts: Date.now() }); }
+function recordFail(key) {
+  if (loginHits.size > 2000) sweepLoginHits(); // strop proti zaplavení paměti náhodnými jmény
+  const r = loginHits.get(key);
+  if (r && Date.now() - r.ts < WINDOW) r.count++; else loginHits.set(key, { count: 1, ts: Date.now() });
+}
 function clearFails(...keys) { keys.forEach((k) => loginHits.delete(k)); }
+setInterval(sweepLoginHits, WINDOW).unref();
 
 const getItem = db.prepare('SELECT * FROM items WHERE code = ?');
 const ITEM_TEXT_FIELDS = ['name', 'brand', 'category', 'location', 'note', 'supplier', 'unit', 'image_url'];
 
 function logMovement(code, name, delta, type, qtyAfter, user) {
-  db.prepare(
+  return db.prepare(
     `INSERT INTO movements (code, name, delta, type, quantity_after, user, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(code, name, delta, type, qtyAfter, user || '', nowIso());
+  ).run(code, name, delta, type, qtyAfter, user || '', nowIso()).lastInsertRowid;
 }
 // DISABLE_LOOKUP=1 vypne dohledávání na internetu (offline provoz, testy)
 async function lookupSafe(code) {
@@ -123,6 +143,9 @@ app.get('/api/me', (req, res) => {
 });
 // Změna vlastního hesla
 app.post('/api/me/password', auth.requireAuth, (req, res) => {
+  if (!auth.verifyPassword(String(req.body.current || ''), req.user.salt, req.user.pass_hash)) {
+    return res.status(403).json({ error: 'Špatné stávající heslo' });
+  }
   try { auth.setPassword(req.user.username, String(req.body.password || '')); res.json({ ok: true }); }
   catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -165,12 +188,13 @@ app.post('/api/scan', wrap(async (req, res) => {
   const user = req.user.display_name;
   // get-or-create + update atomicky, ať se souběžné skeny nepřepisují
   const result = db.transaction(() => {
-    let it = getItem.get(code);
+    let it = getItem.get(code), created = false;
     if (!it) {
       const ts = nowIso();
-      db.prepare(`INSERT INTO items (code, name, brand, category, image_url, quantity, source, created_at, updated_at)
+      const r = db.prepare(`INSERT INTO items (code, name, brand, category, image_url, quantity, source, created_at, updated_at)
                   VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?) ON CONFLICT(code) DO NOTHING`)
         .run(code, info?.name || '', info?.brand || '', info?.category || '', sanitizeImageUrl(info?.image_url), info?.source || '', ts, ts);
+      created = r.changes > 0;
       it = getItem.get(code);
     }
     let delta;
@@ -184,13 +208,13 @@ app.post('/api/scan', wrap(async (req, res) => {
     }
     const newQty = round3(it.quantity + delta);
     db.prepare('UPDATE items SET quantity = ?, updated_at = ? WHERE code = ?').run(newQty, nowIso(), code);
-    logMovement(code, it.name, delta, mode, newQty, user);
-    return { beforeQty: it.quantity, beforeMin: it.min_stock, delta };
+    const movementId = logMovement(code, it.name, delta, mode, newQty, user);
+    return { beforeQty: it.quantity, beforeMin: it.min_stock, delta, movementId, created };
   })();
 
   const updated = getItem.get(code);
   if (updated.quantity < result.beforeQty) checkCrossing(result.beforeQty, result.beforeMin, updated);
-  res.json({ item: updated, lookedUp, found, delta: result.delta });
+  res.json({ item: updated, lookedUp, found, delta: result.delta, movementId: Number(result.movementId), created: result.created });
 }));
 
 /* ---- Ruční přidání ---- */
@@ -249,6 +273,7 @@ app.post('/api/items/:code/lookup', wrap(async (req, res) => {
   const item = getItem.get(code);
   if (!item) return res.status(404).json({ error: 'Položka neexistuje' });
   const info = await lookupSafe(code);
+  if (!getItem.get(code)) return res.status(404).json({ error: 'Položka mezitím zmizela' }); // smazána během dohledávání
   if (!info || !info.name) return res.json({ item, found: false });
   db.prepare(`UPDATE items SET
        name = CASE WHEN name='' THEN ? ELSE name END,
@@ -268,16 +293,28 @@ app.delete('/api/items/:code', (req, res) => {
 
 /* ---- Undo (atomicky) ---- */
 app.post('/api/undo', (req, res) => {
-  const undone = db.transaction(() => {
+  const wantId = 'id' in req.body ? Number(req.body.id) : null;
+  const out = db.transaction(() => {
     const last = db.prepare('SELECT * FROM movements ORDER BY id DESC LIMIT 1').get();
-    if (!last) return null;
+    if (!last) return { err: 404, msg: 'Není co vrátit' };
+    // bezpečnost ve více uživatelích: vrátit smí jen ten poslední pohyb, který klient skutečně provedl
+    if (wantId !== null && wantId !== last.id) return { err: 409, msg: 'Tohle už není poslední pohyb (mezitím skenoval někdo jiný).' };
     const item = getItem.get(last.code);
-    if (item) db.prepare('UPDATE items SET quantity = ?, updated_at = ? WHERE code = ?').run(round3(item.quantity - last.delta), nowIso(), last.code);
+    if (!item) return { err: 409, msg: 'Položka už byla smazána – pohyb nelze vrátit.' }; // nemazat audit stopu
+    const newQty = round3(item.quantity - last.delta);
+    db.prepare('UPDATE items SET quantity = ?, updated_at = ? WHERE code = ?').run(newQty, nowIso(), last.code);
     db.prepare('DELETE FROM movements WHERE id = ?').run(last.id);
-    return last;
+    // uklidit fantomovou položku vzniklou omylem naskenovaným kódem (žádné jiné pohyby, prázdná, na nule)
+    let removed = false;
+    if (newQty === 0 && !item.name && item.source === '' &&
+        db.prepare('SELECT COUNT(*) c FROM movements WHERE code = ?').get(last.code).c === 0) {
+      db.prepare('DELETE FROM items WHERE code = ?').run(last.code);
+      removed = true;
+    }
+    return { undone: last, removed };
   })();
-  if (!undone) return res.status(404).json({ error: 'Není co vrátit' });
-  res.json({ ok: true, undone, item: getItem.get(undone.code) });
+  if (out.err) return res.status(out.err).json({ error: out.msg });
+  res.json({ ok: true, undone: out.undone, removed: out.removed, item: getItem.get(out.undone.code) });
 });
 
 /* ---- Historie ---- */

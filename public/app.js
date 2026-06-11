@@ -72,15 +72,42 @@ function toast(msg, kind = '', action) {
 }
 
 /* ---------- Téma ---------- */
-function applyTheme() { document.body.classList.toggle('theme-dark', cfg.theme === 'dark'); $('#btn-theme').innerHTML = icon(cfg.theme === 'dark' ? 'sun' : 'moon'); }
+function applyTheme() {
+  document.body.classList.toggle('theme-dark', cfg.theme === 'dark');
+  $('#btn-theme').innerHTML = icon(cfg.theme === 'dark' ? 'sun' : 'moon');
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.setAttribute('content', cfg.theme === 'dark' ? '#161c17' : '#347d4f');
+}
 $('#btn-theme').addEventListener('click', () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); applyTheme(); });
 
 /* ---------- Modal systém ---------- */
-let modalLocked = false;
-function openModal(html, locked = false) { modalLocked = locked; $('#modal-body').innerHTML = html; $('#overlay').classList.remove('hidden'); }
-function closeModal() { if (modalLocked) return; $('#overlay').classList.add('hidden'); $('#modal-body').innerHTML = ''; focusScan(); }
+let modalLocked = false, modalReturnFocus = null;
+const FOCUSABLE = 'input,select,textarea,button,a[href],[tabindex]:not([tabindex="-1"])';
+function openModal(html, locked = false) {
+  modalLocked = locked;
+  modalReturnFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+  $('#modal-body').innerHTML = html;
+  $('#overlay').classList.remove('hidden');
+  const first = $('#modal').querySelector(FOCUSABLE);
+  if (first) setTimeout(() => first.focus(), 30); // přesun fokusu do dialogu
+}
+function closeModal() {
+  if (modalLocked) return;
+  $('#overlay').classList.add('hidden'); $('#modal-body').innerHTML = '';
+  if (modalReturnFocus && document.contains(modalReturnFocus)) modalReturnFocus.focus(); else focusScan();
+  modalReturnFocus = null;
+}
 $('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+// Tab-trap uvnitř otevřeného dialogu
+$('#overlay').addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const f = [...$('#modal').querySelectorAll(FOCUSABLE)].filter((el) => !el.disabled && el.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 function field(label, id, val, type = 'text', extra = '') { return `<div class="fld"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(val)}" ${extra}></div>`; }
 
 /* ===================== PŘIHLÁŠENÍ ===================== */
@@ -119,7 +146,7 @@ async function afterLogin() {
   $('#op-role').textContent = currentUser.role === 'admin' ? 'Administrátor' : 'Operátor';
   $('#op-avatar').textContent = ((currentUser.display_name || '?').trim()[0] || '?').toUpperCase();
   document.body.classList.toggle('is-admin', currentUser.role === 'admin');
-  setMode('in');
+  setMode(state.mode); // zachovat režim při znovupřihlášení (např. uprostřed inventury)
   await Promise.all([loadItems(), loadSummary()]);
   focusScan();
 }
@@ -127,19 +154,31 @@ async function logout() { try { await api('/api/logout', { method: 'POST' }); } 
 
 /* ---------- Režim / taby / filtry / řazení ---------- */
 function setMode(m) {
+  const prev = state.mode;
   state.mode = m;
-  $$('[data-mode]').forEach((x) => x.classList.toggle('active', x.dataset.mode === m));
+  $$('[data-mode]').forEach((x) => { x.classList.toggle('active', x.dataset.mode === m); x.setAttribute('aria-pressed', x.dataset.mode === m); });
   document.body.classList.remove('mode-out', 'mode-set');
   if (m === 'out') document.body.classList.add('mode-out');
   if (m === 'set') document.body.classList.add('mode-set');
   $('#step-label').textContent = m === 'set' ? 'na' : 'po';
+  // Při přepnutí DO inventury vyprázdnit hodnotu (vynutí zadání skutečného stavu, ne tichá nula);
+  // při návratu k příjmu/výdeji s prázdným polem doplnit krok 1.
+  if (m === 'set' && prev !== 'set') stepEl.value = '';
+  else if (m !== 'set' && !stepEl.value) stepEl.value = '1';
+  updateStepStyle();
   const h = new Date().getHours();
   const greet = h < 9 ? 'Dobré ráno!' : h < 12 ? 'Pěkné dopoledne!' : h < 18 ? 'Pěkné odpoledne!' : 'Dobrý večer!';
   $('#hint').textContent = m === 'set'
-    ? 'Inventura: naskenuj kód a zapiš skutečný stav — appka srovná rozdíl sama.'
+    ? 'Inventura: nejdřív napiš skutečný stav, pak naskenuj kód — appka srovná rozdíl.'
     : `${greet} Stačí naskenovat kód — konec skenu pozná appka sama, Enter netřeba.`;
   focusScan();
 }
+// Zvýraznit krok, když není 1 (aby si operátor všiml, že se přičítá víc / nastavuje stav)
+function updateStepStyle() {
+  const n = parseFloat(stepEl.value);
+  document.querySelector('.step').classList.toggle('step-alert', state.mode === 'set' || (Number.isFinite(n) && n !== 1));
+}
+stepEl.addEventListener('input', updateStepStyle);
 $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $$('.nav-item').forEach((b) => b.addEventListener('click', () => {
   state.view = b.dataset.view;
@@ -151,16 +190,28 @@ $$('.nav-item').forEach((b) => b.addEventListener('click', () => {
 function setFilter(f) { state.filter = f; $$('.fil').forEach((x) => x.classList.toggle('active', x.dataset.filter === f)); loadItems(); }
 $$('.fil').forEach((b) => b.addEventListener('click', () => setFilter(b.dataset.filter)));
 $$('.stat[data-filter]').forEach((c) => c.addEventListener('click', () => { if (state.view !== 'inventory') $('.nav-item[data-view="inventory"]').click(); setFilter(c.dataset.filter); }));
-$$('.grid th.sortable').forEach((th) => th.addEventListener('click', () => {
+function toggleSort(th) {
   const key = th.dataset.sort;
   if (state.sort === key) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
   else { state.sort = key; state.dir = key === 'name' || key === 'code' ? 'asc' : 'desc'; }
   loadItems();
-}));
+}
+$$('.grid th.sortable').forEach((th) => {
+  th.addEventListener('click', () => toggleSort(th));
+  th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(th); } });
+});
 
 /* ---------- Skenování (bez Enteru) ---------- */
-let scanning = false, autoTimer = null, firstKeyT = 0;
-function submitScan() { clearTimeout(autoTimer); const code = scanEl.value.trim(); scanEl.value = ''; if (!code || scanning) return; doScan(code); }
+let scanning = false, autoTimer = null, firstKeyT = 0, lastMovementId = null;
+const scanQueue = [];
+function submitScan() {
+  clearTimeout(autoTimer);
+  const code = scanEl.value.trim();
+  scanEl.value = '';
+  if (!code) return;
+  scanQueue.push(code); // fronta – rychlé skeny za sebou se neztratí
+  drainScans();
+}
 scanEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitScan(); } });
 scanEl.addEventListener('input', () => {
   const now = performance.now();
@@ -168,26 +219,34 @@ scanEl.addEventListener('input', () => {
   clearTimeout(autoTimer);
   autoTimer = setTimeout(() => {
     const code = scanEl.value.trim();
-    if (code.length < 3 || scanning) return;
+    if (code.length < 3) return;
     const avg = code.length > 1 ? (now - firstKeyT) / (code.length - 1) : 0;
     if (avg <= cfg.fastAvg) submitScan();
   }, cfg.silenceMs);
 });
+async function drainScans() {
+  if (scanning) return;
+  scanning = true; fieldEl.classList.add('busy');
+  while (scanQueue.length) { spinnerEl.classList.remove('hidden'); await doScan(scanQueue.shift()); }
+  spinnerEl.classList.add('hidden'); fieldEl.classList.remove('busy'); scanning = false; focusScan();
+}
 async function doScan(code) {
-  scanning = true; spinnerEl.classList.remove('hidden'); fieldEl.classList.add('busy'); scanEl.disabled = true;
   try {
     const body = { code, mode: state.mode };
     const n = parseFloat(stepEl.value);
-    if (state.mode === 'set') body.value = Number.isFinite(n) ? n : 0;
-    else body.step = Number.isFinite(n) && n > 0 ? n : 1;
+    if (state.mode === 'set') {
+      if (!Number.isFinite(n)) { beep(false); toast('Zadej skutečný stav (množství) před skenem', 'err'); return; }
+      body.value = n;
+    } else body.step = Number.isFinite(n) && n > 0 ? n : 1;
     const r = await api('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    beep(true); showLastScan(r); await Promise.all([loadItems(), loadSummary()]);
+    lastMovementId = r.movementId;
+    beep(true); showLastScan(r);
+    await Promise.all([loadItems(), loadSummary()]);
   } catch (err) { beep(false); if (err.status !== 401) toast(err.message, 'err'); }
-  finally { scanning = false; spinnerEl.classList.add('hidden'); fieldEl.classList.remove('busy'); scanEl.disabled = false; focusScan(); }
 }
 function showLastScan(r) {
   const it = r.item, el = $('#lastscan');
-  const name = it.name || '— bez názvu, otevři detail a doplň —';
+  const name = it.name || '— bez názvu, klikni a doplň —';
   const thumb = thumbHtml(it, 'ls-thumb');
   let badge = '';
   if (r.lookedUp) badge = r.found ? `<span class="src-badge">✓ ${esc(it.source || 'internet')}</span>` : `<span class="src-badge miss">⚠ nenalezeno</span>`;
@@ -195,14 +254,21 @@ function showLastScan(r) {
   const deltaTxt = state.mode === 'set' ? `= ${qfmt(it.quantity)}` : `${d >= 0 ? '+' : ''}${qfmt(d)} → ${qfmt(it.quantity)}`;
   el.className = 'lastscan ' + state.mode;
   el.innerHTML = `${thumb}
-    <div><div class="ls-name">${esc(name)}</div>
-    <div class="ls-sub"><span class="code">${esc(it.code)}</span>${it.brand ? ' · ' + esc(it.brand) : ''}${badge}</div></div>
+    <button class="ls-main" id="ls-open" aria-label="Otevřít detail">
+      <div class="ls-name">${esc(name)}</div>
+      <div class="ls-sub"><span class="code">${esc(it.code)}</span>${it.brand ? ' · ' + esc(it.brand) : ''}${badge}</div>
+    </button>
     <div class="ls-right"><div class="ls-badge">${deltaTxt} ${esc(it.unit || 'ks')}</div><button class="ls-undo" id="ls-undo">${icon('undo')} Vrátit</button></div>`;
-  $('#ls-undo').onclick = undoLast;
+  $('#ls-undo').onclick = () => undoLast(r.movementId);
+  $('#ls-open').onclick = () => openDetail(it.code); // doplnění názvu na jeden klik
 }
-async function undoLast() {
-  try { await api('/api/undo', { method: 'POST' }); toast('Vráceno zpět', 'ok'); $('#lastscan').classList.add('hidden'); await Promise.all([loadItems(), loadSummary()]); if (state.view === 'history') loadMovements(); }
-  catch (err) { toast(err.message, 'err'); }
+async function undoLast(id) {
+  try {
+    const r = await api('/api/undo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(id != null ? { id } : {}) });
+    toast(r.removed ? 'Vráceno (i smazaná položka)' : 'Vráceno zpět', 'ok');
+    $('#lastscan').classList.add('hidden');
+    await Promise.all([loadItems(), loadSummary()]); if (state.view === 'history') loadMovements();
+  } catch (err) { toast(err.message, 'err'); }
   focusScan();
 }
 
@@ -228,7 +294,12 @@ async function loadItems() {
     const el = [...document.querySelectorAll('#items tr [data-f="' + keep.f + '"]')].find((x) => x.closest('tr').dataset.code === keep.code);
     if (el) { el.value = keep.v; el.focus(); if (keep.s != null) { try { el.setSelectionRange(keep.s, keep.e); } catch {} } }
   }
-  $$('.grid th.sortable').forEach((th) => { const a = th.querySelector('.arr'); if (a) a.remove(); if (th.dataset.sort === state.sort) th.insertAdjacentHTML('beforeend', ` <span class="arr">${state.dir === 'asc' ? '▲' : '▼'}</span>`); });
+  $$('.grid th.sortable').forEach((th) => {
+    const a = th.querySelector('.arr'); if (a) a.remove();
+    const active = th.dataset.sort === state.sort;
+    th.setAttribute('aria-sort', active ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+    if (active) th.insertAdjacentHTML('beforeend', ` <span class="arr" aria-hidden="true">${state.dir === 'asc' ? '▲' : '▼'}</span>`);
+  });
 }
 function renderItems() {
   const tb = $('#items');
@@ -239,7 +310,7 @@ function renderItems() {
     const u = esc(it.unit || 'ks');
     return `
     <tr data-code="${esc(it.code)}" class="${dot === 'zero' ? 'zero' : dot === 'low' ? 'low' : ''}">
-      <td class="c-st"><span class="dot ${dot}" title="${dot === 'zero' ? 'Vyprodáno' : dot === 'low' ? 'Pod minimem' : 'OK'}"></span></td>
+      <td class="c-st"><span class="dot ${dot}"></span><span class="sr-only">${dot === 'zero' ? 'Vyprodáno' : dot === 'low' ? 'Pod minimem' : 'Skladem'}</span></td>
       <td class="c-img">${thumbHtml(it, 'thumb')}</td>
       <td class="c-code code">${esc(it.code)}</td>
       <td class="c-name"><input class="cell-input ${it.name ? '' : 'name-empty'}" data-f="name" value="${esc(it.name)}" placeholder="doplň název…" aria-label="Název položky"></td>
@@ -263,8 +334,8 @@ $('#items').addEventListener('click', async (e) => {
   const item = state.items.find((i) => i.code === code); if (!item) return;
   const act = btn.dataset.act;
   if (act === 'inc' || act === 'dec') {
-    const st = parseFloat(stepEl.value); const inc = Number.isFinite(st) && st > 0 ? st : 1;
-    await patch(code, { quantity: round3c(item.quantity + (act === 'inc' ? inc : -inc)) });
+    // řádkové +/- vždy po 1 (nezávisle na skenovacím kroku – ten platí jen pro skenování)
+    await patch(code, { quantity: round3c(item.quantity + (act === 'inc' ? 1 : -1)) });
   }
   else if (act === 'detail') openDetail(code);
   else if (act === 'label') printLabels([item]);
@@ -433,9 +504,10 @@ async function openSettings() {
     <div class="modal-body">
       <div class="m-section-title">Můj účet</div>
       <div class="form-grid">
-        <div class="fld"><label>Nové heslo</label><input id="ac-pass" type="password" placeholder="••••"></div>
-        <div class="fld" style="justify-content:flex-end"><button class="btn" id="ac-pass-btn">Změnit heslo</button></div>
+        <div class="fld"><label for="ac-current">Stávající heslo</label><input id="ac-current" type="password" autocomplete="current-password"></div>
+        <div class="fld"><label for="ac-pass">Nové heslo</label><input id="ac-pass" type="password" autocomplete="new-password"></div>
       </div>
+      <div class="modal-actions"><span class="spacer"></span><button class="btn" id="ac-pass-btn">Změnit heslo</button></div>
       <div class="modal-actions"><button class="btn danger-btn" id="ac-logout">${icon('logout')} Odhlásit se</button><span class="spacer"></span></div>
 
       <div class="m-section-title">Vzhled a chování</div>
@@ -451,8 +523,9 @@ async function openSettings() {
   $('#m-close').onclick = $('#s-cancel').onclick = closeModal;
   $('#ac-logout').onclick = logout;
   $('#ac-pass-btn').onclick = async () => {
-    const pw = $('#ac-pass').value; if (pw.length < 6) return toast('Heslo musí mít aspoň 6 znaků', 'err');
-    try { await api('/api/me/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) }); toast('Heslo změněno', 'ok'); $('#ac-pass').value = ''; }
+    const cur = $('#ac-current').value, pw = $('#ac-pass').value;
+    if (pw.length < 6) return toast('Nové heslo musí mít aspoň 6 znaků', 'err');
+    try { await api('/api/me/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current: cur, password: pw }) }); toast('Heslo změněno', 'ok'); $('#ac-current').value = ''; $('#ac-pass').value = ''; }
     catch (err) { toast(err.message, 'err'); }
   };
   $('#s-save').onclick = () => {
