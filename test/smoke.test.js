@@ -7,15 +7,27 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
+const { once } = require('node:events');
+const net = require('node:net');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const PORT = 3789;
-const B = `http://127.0.0.1:${PORT}`;
+let PORT, B;
 let proc;
 let cookie = '';
+let adminPassword = '';
 let tmpDir;
+
+// volný port za běhu – žádné kolize mezi paralelními běhy
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => resolve(p)); });
+  });
+}
 
 function api(p, opts = {}) {
   opts.headers = Object.assign({ 'Content-Type': 'application/json', Cookie: cookie }, opts.headers);
@@ -24,6 +36,8 @@ function api(p, opts = {}) {
 async function json(p, opts) { const r = await api(p, opts); return { status: r.status, body: await r.json() }; }
 
 before(async () => {
+  PORT = await freePort();
+  B = `http://127.0.0.1:${PORT}`;
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sklad-test-'));
   proc = spawn(process.execPath, ['server.js'], {
     cwd: path.join(__dirname, '..'),
@@ -32,6 +46,7 @@ before(async () => {
   });
   let out = '';
   proc.stdout.on('data', (d) => { out += d; });
+  proc.stderr.on('data', (d) => { out += d; }); // ať je případná chyba startu vidět
 
   // počkej na server i na vypsané heslo admina
   let ready = false;
@@ -39,28 +54,56 @@ before(async () => {
     try { const r = await fetch(B + '/healthz'); ready = r.ok && /Heslo:/.test(out); } catch {}
     if (!ready) await new Promise((s) => setTimeout(s, 100));
   }
-  assert.ok(ready, 'server nastartoval a vypsal heslo');
+  assert.ok(ready, 'server nastartoval a vypsal heslo. Výstup:\n' + out);
 
-  const password = out.match(/Heslo:\s+(\S+)/)[1];
-  const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ username: 'admin', password }) });
+  const m = out.match(/Heslo:\s+(\S+)/);
+  assert.ok(m, 'heslo nalezeno ve výstupu');
+  adminPassword = m[1];
+  const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ username: 'admin', password: adminPassword }) });
   assert.strictEqual(r.status, 200, 'login se seedovaným heslem');
   cookie = r.headers.get('set-cookie').split(';')[0];
 });
 
-after(() => {
-  if (proc) proc.kill('SIGTERM');
+after(async () => {
+  if (proc && proc.exitCode === null) {
+    proc.kill('SIGTERM');
+    await Promise.race([once(proc, 'exit'), new Promise((s) => setTimeout(() => { try { proc.kill('SIGKILL'); } catch {} s(); }, 2000))]);
+  }
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
 });
 
-test('healthz vrací ok + verzi', async () => {
+test('healthz vrací ok + správnou verzi z package.json', async () => {
   const r = await (await fetch(B + '/healthz')).json();
   assert.strictEqual(r.ok, true);
-  assert.match(String(r.version), /^\d+\.\d+\.\d+$/);
+  assert.strictEqual(r.version, require('../package.json').version);
+});
+
+test('index.html se servíruje a odkazované assety vrací 200', async () => {
+  const html = await (await fetch(B + '/')).text();
+  assert.match(html, /<title>/);
+  for (const m of html.matchAll(/(?:src|href)="([^"]+\.(?:css|js|svg|json))(?:\?[^"]*)?"/gi)) {
+    let url = m[1].split('?')[0];
+    if (/^https?:\/\//.test(url)) continue;           // externí (fonty) neřešíme
+    if (!url.startsWith('/')) url = '/' + url;         // relativní → kořen
+    if (url.startsWith('/api/')) continue;             // API endpointy vyžadují auth, nejsou to statické assety
+    const res = await fetch(B + url);
+    assert.strictEqual(res.status, 200, 'asset ' + url);
+  }
 });
 
 test('API bez přihlášení vrací 401', async () => {
   const r = await fetch(B + '/api/items');
   assert.strictEqual(r.status, 401);
+});
+
+test('odhlášení zneplatní sezení (na vlastní cookie, sdílenou nerušíme)', async () => {
+  const login = await fetch(B + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: adminPassword }) });
+  const c2 = login.headers.get('set-cookie').split(';')[0];
+  let me = await fetch(B + '/api/me', { headers: { Cookie: c2 } });
+  assert.strictEqual(me.status, 200);
+  await fetch(B + '/api/logout', { method: 'POST', headers: { Cookie: c2 } });
+  me = await fetch(B + '/api/me', { headers: { Cookie: c2 } });
+  assert.strictEqual(me.status, 401);
 });
 
 test('neplatný JSON vrací JSON 400', async () => {

@@ -6,3 +6,6 @@ test
 *.md
 .DS_Store
 .claude
+.github
+Dockerfile
+.dockerignore

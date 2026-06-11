@@ -7,3 +7,8 @@ data/
 # systémové
 .DS_Store
 *.log
+
+# AI nástroj (lokální)
+.claude/
+# env soubory
+.env*

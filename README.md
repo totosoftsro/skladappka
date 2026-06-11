@@ -24,10 +24,14 @@ prohlížeč (počítač i mobil).
 - **Tisk štítků** s čárovým kódem (Code128) — jednotlivě i hromadně dle filtru.
 - **E-mailová upozornění** při poklesu pod minimum (vlastní SMTP) + ruční report.
 - **Export** skladu a pohybů do CSV (Excel, česká locale), **záloha/obnova** JSON.
-- **Mobilní rozhraní** (karty, spodní listy) + instalace na plochu (PWA).
-- Tmavý režim, čeština, žádné externí služby kromě vyhledávání názvů.
+- **Mobilní rozhraní** (karty, spodní listy) + přidání na plochu (PWA, bez offline režimu).
+- Tmavý režim, čeština. Jediné externí závislosti za běhu: vyhledávání názvů
+  zboží a webové fonty (Google Fonts) — bez nich appka funguje a použije
+  systémové písmo.
 
 ## Rychlý start
+
+Vyžaduje **Node.js 20+**.
 
 ```bash
 git clone https://github.com/totosoftsro/skladappka.git
@@ -52,11 +56,15 @@ Ostatní ve firemní síti otevřou druhou adresu v prohlížeči — nic neinst
 
 | Proměnná         | Výchozí       | Význam                                                |
 |------------------|---------------|-------------------------------------------------------|
-| `PORT`           | `3000`        | Port serveru                                          |
-| `DATA_DIR`       | `./data`      | Složka s databází (SQLite)                            |
-| `TLS_KEY`, `TLS_CERT` | —        | Cesty k PEM souborům → server běží na HTTPS           |
-| `TRUST_PROXY`    | —             | `1` za reverzní proxy (správné IP, Secure cookie)     |
-| `DISABLE_LOOKUP` | —             | `1` vypne dohledávání na internetu (offline provoz)   |
+| `PORT`             | `3000`        | Port serveru                                          |
+| `DATA_DIR`         | `data/` vedle aplikace | Složka s databází (SQLite)                   |
+| `TLS_KEY`, `TLS_CERT` | —          | Cesty k PEM souborům → server běží na HTTPS           |
+| `TRUST_PROXY`      | —             | `1` za reverzní proxy (správné IP, Secure cookie)     |
+| `DISABLE_LOOKUP`   | —             | `1` vypne dohledávání na internetu (offline provoz)   |
+| `GOOGLE_BOOKS_KEY` | —             | volitelný klíč Google Books API (spolehlivější ISBN) |
+
+Endpoint **`GET /healthz`** vrací `{ ok, version }` — pro monitoring / supervisor
+(používá ho i Docker HEALTHCHECK).
 
 ## Produkční nasazení
 
