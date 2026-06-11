@@ -509,7 +509,7 @@ function focusScan() {
 scanEl.addEventListener('focus', () => fieldEl.classList.add('focus'));
 scanEl.addEventListener('blur', () => fieldEl.classList.remove('focus'));
 document.addEventListener('click', (e) => {
-  if (e.target.closest('input, button, a, select, textarea, summary, label, .modal, .panel, .toolbar, .sidebar, .stats')) return;
+  if (e.target.closest('input, button, a, select, textarea, summary, label, .modal, .panel, .toolbar, .topbar, .overview')) return;
   focusScan();
 });
 

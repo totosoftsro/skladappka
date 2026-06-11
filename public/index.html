@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.1" />
+  <link rel="stylesheet" href="style.css?v=1.0.2" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#347d4f" />
@@ -16,46 +16,43 @@
 </head>
 <body>
   <h1 class="sr-only">Skladová evidence</h1>
-  <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="brand">
-        <span class="brand-mark">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
-        </span>
-        <span class="brand-name">Sklad<b>·evidence</b></span>
-      </div>
 
-      <nav class="nav">
-        <button class="nav-item active" data-view="inventory">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
-          <span>Sklad</span>
-        </button>
-        <button class="nav-item" data-view="history">
-          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span>Historie pohybů</span>
-        </button>
-      </nav>
+  <!-- HORNÍ LIŠTA -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+      </span>
+      <span class="brand-name">Sklad<b>·evidence</b></span>
+    </div>
 
-      <div class="side-foot">
-        <button class="user-card" id="op-badge" aria-label="Účet a nastavení" title="Účet a nastavení">
-          <span class="avatar" id="op-avatar">–</span>
-          <span class="u-meta"><span class="u-name" id="op-name">—</span><span class="u-sub" id="op-role"></span></span>
-          <svg class="ico chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-        <div class="side-actions">
-          <button class="side-btn" id="btn-theme" aria-label="Světlý / tmavý režim" title="Světlý / tmavý režim"></button>
-          <button class="side-btn" id="btn-settings" aria-label="Nastavení" title="Nastavení">
-            <svg class="ico" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-          </button>
-        </div>
-      </div>
-    </aside>
+    <nav class="nav" aria-label="Hlavní navigace">
+      <button class="nav-item active" data-view="inventory">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <span>Sklad</span>
+      </button>
+      <button class="nav-item" data-view="history">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>Historie</span>
+      </button>
+    </nav>
 
-    <!-- MAIN -->
-    <main class="main">
-      <!-- Scan bar -->
-      <div class="scanbar">
+    <div class="top-actions">
+      <button class="user-card" id="op-badge" aria-label="Účet a nastavení" title="Účet a nastavení">
+        <span class="avatar" id="op-avatar">–</span>
+        <span class="u-meta"><span class="u-name" id="op-name">—</span><span class="u-sub" id="op-role"></span></span>
+      </button>
+      <button class="top-btn" id="btn-theme" aria-label="Světlý / tmavý režim" title="Světlý / tmavý režim"></button>
+      <button class="top-btn" id="btn-settings" aria-label="Nastavení" title="Nastavení">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- HERO: skenovací pult -->
+    <section class="hero">
+      <div class="hero-inner">
         <div class="seg" role="tablist" aria-label="Režim">
           <button class="seg-btn active" data-mode="in">
             <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg> Příjem
@@ -68,100 +65,104 @@
           </button>
         </div>
 
-        <div class="scan-field" id="scanfield">
-          <svg class="barcode" viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><rect x="1" y="3" width="2" height="18"/><rect x="5" y="3" width="1" height="18"/><rect x="8" y="3" width="3" height="18"/><rect x="13" y="3" width="1" height="18"/><rect x="16" y="3" width="2" height="18"/><rect x="20" y="3" width="1" height="18"/><rect x="23" y="3" width="3" height="18"/><rect x="28" y="3" width="1" height="18"/><rect x="31" y="3" width="2" height="18"/><rect x="35" y="3" width="1" height="18"/><rect x="37" y="3" width="2" height="18"/></g></svg>
-          <input id="scan" type="text" autocomplete="off" inputmode="none" placeholder="Naskenuj čárový kód…" aria-label="Čárový kód" />
-          <span class="spinner hidden" id="spinner" aria-hidden="true"></span>
+        <div class="hero-row">
+          <div class="scan-field" id="scanfield">
+            <svg class="barcode" viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><rect x="1" y="3" width="2" height="18"/><rect x="5" y="3" width="1" height="18"/><rect x="8" y="3" width="3" height="18"/><rect x="13" y="3" width="1" height="18"/><rect x="16" y="3" width="2" height="18"/><rect x="20" y="3" width="1" height="18"/><rect x="23" y="3" width="3" height="18"/><rect x="28" y="3" width="1" height="18"/><rect x="31" y="3" width="2" height="18"/><rect x="35" y="3" width="1" height="18"/><rect x="37" y="3" width="2" height="18"/></g></svg>
+            <input id="scan" type="text" autocomplete="off" inputmode="none" placeholder="Naskenuj čárový kód…" aria-label="Čárový kód" />
+            <span class="spinner hidden" id="spinner" aria-hidden="true"></span>
+          </div>
+          <label class="step"><span id="step-label">po</span><input id="step" type="number" min="0" step="any" value="1" aria-label="Krok množství" /><span id="step-unit"></span></label>
+          <button class="btn primary hero-add" id="btn-add">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Přidat
+          </button>
         </div>
 
-        <label class="step"><span id="step-label">po</span><input id="step" type="number" min="0" step="any" value="1" aria-label="Krok množství" /><span id="step-unit"></span></label>
-
-        <button class="btn primary" id="btn-add">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Přidat
-        </button>
+        <p class="scan-hint" id="hint">Stačí naskenovat kód — konec skenu pozná appka sama.</p>
+        <div id="lastscan" class="lastscan hidden"></div>
       </div>
-      <p class="scan-hint" id="hint">Jen naskenuj kód čtečkou — appka pozná konec skenu sama, Enter mačkat nemusíš.</p>
-      <div id="lastscan" class="lastscan hidden"></div>
+    </section>
 
-      <!-- SKLAD -->
-      <section id="view-inventory" class="view">
-        <div class="stats">
-          <div class="stat"><span class="stat-label">Položky</span><span class="stat-value" id="stat-skus">0</span></div>
-          <div class="stat"><span class="stat-label">Množství celkem</span><span class="stat-value" id="stat-pieces">0</span></div>
-          <div class="stat"><span class="stat-label">Hodnota skladu</span><span class="stat-value"><span id="stat-value">0</span> <span class="stat-unit" id="cur-label">Kč</span></span></div>
-          <button class="stat clickable warn" id="chip-low" data-filter="low"><span class="stat-label">Pod limitem</span><span class="stat-value" id="stat-low">0</span></button>
-          <button class="stat clickable danger" id="chip-zero" data-filter="zero"><span class="stat-label">Vyprodáno</span><span class="stat-value" id="stat-zero">0</span></button>
+    <!-- SKLAD -->
+    <section id="view-inventory" class="view">
+      <div class="overview" role="group" aria-label="Přehled skladu">
+        <div class="stat"><span class="stat-value" id="stat-skus">0</span><span class="stat-label">položek</span></div>
+        <span class="ov-div" aria-hidden="true"></span>
+        <div class="stat"><span class="stat-value" id="stat-pieces">0</span><span class="stat-label">množství celkem</span></div>
+        <span class="ov-div" aria-hidden="true"></span>
+        <div class="stat"><span class="stat-value"><span id="stat-value">0</span> <span class="stat-unit" id="cur-label">Kč</span></span><span class="stat-label">hodnota skladu</span></div>
+        <span class="ov-flex" aria-hidden="true"></span>
+        <button class="stat clickable warn" id="chip-low" data-filter="low"><span class="stat-value" id="stat-low">0</span><span class="stat-label">pod limitem</span></button>
+        <button class="stat clickable danger" id="chip-zero" data-filter="zero"><span class="stat-value" id="stat-zero">0</span><span class="stat-label">vyprodáno</span></button>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters">
+          <button class="fil active" data-filter="all">Vše</button>
+          <button class="fil" data-filter="low">Pod limitem</button>
+          <button class="fil" data-filter="zero">Vyprodáno</button>
         </div>
-
-        <div class="toolbar">
-          <div class="filters">
-            <button class="fil active" data-filter="all">Vše</button>
-            <button class="fil" data-filter="low">Pod limitem</button>
-            <button class="fil" data-filter="zero">Vyprodáno</button>
+        <div class="toolbar-right">
+          <div class="searchbox">
+            <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="search" type="search" placeholder="Hledat ve skladu…" />
           </div>
-          <div class="toolbar-right">
-            <div class="searchbox">
-              <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-              <input id="search" type="search" placeholder="Hledat ve skladu…" />
+          <details class="menu" id="export-menu">
+            <summary class="btn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Export <svg class="ico chev-sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
+            <div class="menu-list">
+              <a href="/api/export.csv">Sklad → CSV</a>
+              <a href="/api/movements.csv">Pohyby → CSV</a>
+              <button id="btn-labels">Tisk štítků (dle filtru)</button>
+              <a href="/api/backup.json">Záloha (JSON)</a>
+              <button id="btn-restore">Obnovit ze zálohy…</button>
             </div>
-            <details class="menu" id="export-menu">
-              <summary class="btn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Export <svg class="ico chev-sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
-              <div class="menu-list">
-                <a href="/api/export.csv">Sklad → CSV</a>
-                <a href="/api/movements.csv">Pohyby → CSV</a>
-                <button id="btn-labels">Tisk štítků (dle filtru)</button>
-                <a href="/api/backup.json">Záloha (JSON)</a>
-                <button id="btn-restore">Obnovit ze zálohy…</button>
-              </div>
-            </details>
-            <input type="file" id="restore-file" accept="application/json" hidden />
-          </div>
+          </details>
+          <input type="file" id="restore-file" accept="application/json" hidden />
         </div>
+      </div>
 
-        <div class="panel">
-          <div class="table-scroll">
-            <table class="grid">
-              <thead>
-                <tr>
-                  <th class="c-st"></th>
-                  <th class="c-img"></th>
-                  <th class="c-code sortable" data-sort="code">Kód</th>
-                  <th class="c-name sortable" data-sort="name">Název</th>
-                  <th class="c-loc">Umístění</th>
-                  <th class="c-qty sortable" data-sort="quantity">Množství</th>
-                  <th class="c-min">Min.</th>
-                  <th class="c-price sortable" data-sort="price">Cena/ks</th>
-                  <th class="c-act"></th>
-                </tr>
-              </thead>
-              <tbody id="items"></tbody>
-            </table>
-          </div>
-          <div id="empty" class="empty hidden">
-            <svg class="empty-ico" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
-            <div id="empty-text">Zatím tu nic není.</div>
-            <div class="empty-sub">Naskenuj první kód a sklad se začne plnit.</div>
-          </div>
+      <div class="panel">
+        <div class="table-scroll">
+          <table class="grid">
+            <thead>
+              <tr>
+                <th class="c-st"></th>
+                <th class="c-img"></th>
+                <th class="c-code sortable" data-sort="code">Kód</th>
+                <th class="c-name sortable" data-sort="name">Název</th>
+                <th class="c-loc">Umístění</th>
+                <th class="c-qty sortable" data-sort="quantity">Množství</th>
+                <th class="c-min">Min.</th>
+                <th class="c-price sortable" data-sort="price">Cena/ks</th>
+                <th class="c-act"></th>
+              </tr>
+            </thead>
+            <tbody id="items"></tbody>
+          </table>
         </div>
-      </section>
+        <div id="empty" class="empty hidden">
+          <svg class="empty-ico" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+          <div id="empty-text">Zatím tu nic není.</div>
+          <div class="empty-sub">Naskenuj první kód a sklad se začne plnit.</div>
+        </div>
+      </div>
+    </section>
 
-      <!-- HISTORIE -->
-      <section id="view-history" class="view hidden">
-        <div class="panel">
-          <div class="panel-head">Historie pohybů</div>
-          <div class="table-scroll">
-            <table class="grid">
-              <thead>
-                <tr><th>Čas</th><th>Kód</th><th>Název</th><th>Typ</th><th class="c-qty">Pohyb</th><th class="c-min">Stav po</th><th>Operátor</th></tr>
-              </thead>
-              <tbody id="movements"></tbody>
-            </table>
-          </div>
-          <div id="empty-hist" class="empty hidden"><div>Zatím žádné pohyby.</div></div>
+    <!-- HISTORIE -->
+    <section id="view-history" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">Historie pohybů</div>
+        <div class="table-scroll">
+          <table class="grid">
+            <thead>
+              <tr><th>Čas</th><th>Kód</th><th>Název</th><th>Typ</th><th class="c-qty">Pohyb</th><th class="c-min">Stav po</th><th>Operátor</th></tr>
+            </thead>
+            <tbody id="movements"></tbody>
+          </table>
         </div>
-      </section>
-    </main>
-  </div>
+        <div id="empty-hist" class="empty hidden"><div>Zatím žádné pohyby.</div></div>
+      </div>
+    </section>
+  </main>
 
   <datalist id="units">
     <option value="ks"></option><option value="m"></option><option value="m²"></option><option value="m³"></option>
@@ -172,7 +173,7 @@
 
   <div id="overlay" class="overlay hidden"><div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modal-body"></div></div></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="barcode.js?v=1.0.1"></script>
-  <script src="app.js?v=1.0.1"></script>
+  <script src="barcode.js?v=1.0.2"></script>
+  <script src="app.js?v=1.0.2"></script>
 </body>
 </html>
