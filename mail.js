@@ -33,6 +33,7 @@ async function sendMail(subject, html, text) {
   if (!isConfigured(c)) throw new Error('E-mail není nastavený (chybí server, odesílatel nebo příjemce).');
   const transport = nodemailer.createTransport({
     host: c.host, port: c.port, secure: c.secure,
+    requireTLS: !c.secure, // u portu 587 vynutit STARTTLS (ochrana proti odposlechu hesla)
     auth: c.user ? { user: c.user, pass: c.pass } : undefined,
     connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
   });
@@ -46,7 +47,7 @@ async function sendMail(subject, html, text) {
 function lowStockTable(items) {
   const rows = items.map((i) =>
     `<tr><td>${esc(i.name || i.code)}</td><td style="font-family:monospace">${esc(i.code)}</td>` +
-    `<td align="right"><b>${i.quantity}</b></td><td align="right">${i.min_stock}</td><td>${esc(i.location || '')}</td></tr>`
+    `<td align="right"><b>${esc(i.quantity)}</b></td><td align="right">${esc(i.min_stock)}</td><td>${esc(i.location || '')}</td></tr>`
   ).join('');
   return `<h2 style="font-family:sans-serif">📦 Položky pod minimální zásobou</h2>
     <table cellpadding="8" cellspacing="0" border="1" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
@@ -61,11 +62,13 @@ async function maybeAlertCrossing(item) {
   const c = getMailConfig();
   if (!c.enabled || !isConfigured(c)) return;
   const now = Date.now();
+  for (const [k, t] of lastAlert) if (now - t >= 3600000) lastAlert.delete(k); // úklid staré mapy
   if (lastAlert.has(item.code) && now - lastAlert.get(item.code) < 3600000) return;
   lastAlert.set(item.code, now);
   try {
     await sendMail(`⚠️ Nízká zásoba: ${item.name || item.code}`, lowStockTable([item]));
   } catch (e) {
+    lastAlert.delete(item.code); // selhalo → příště to zkus znovu, ne až za hodinu
     console.error('Odeslání upozornění selhalo:', e.message);
   }
 }

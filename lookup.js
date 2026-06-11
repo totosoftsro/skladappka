@@ -2,13 +2,15 @@
 
 // Best-effort vyhledávání informací o zboží podle čárového kódu (EAN/UPC/ISBN) na internetu.
 // Všechno zdarma, bez API klíče. Dvě fáze:
-//   1) bezlimitní zdroje paralelně (Google Books, Open Food/Products/Beauty Facts, Brocade)
+//   1) volné zdroje paralelně (Google Books*, Open Food/Products/Beauty Facts)
 //   2) UPCitemdb (denní limit) jen když fáze 1 nic nenašla – šetří kvótu i čas
 //
+// * Google Books má i bez klíče denní limit; pro vyšší spolehlivost nastav GOOGLE_BOOKS_KEY.
 // Pokud nic nenajde, vrátí null a název se doplní ručně v appce.
 
-const UA = 'skladappka/1.2 (firemni skladova evidence)';
+const UA = 'skladappka/' + require('./package.json').version + ' (firemni skladova evidence)';
 const TIMEOUT_MS = 4000;
+const GOOGLE_KEY = process.env.GOOGLE_BOOKS_KEY || ''; // volitelný klíč – bez něj je anonymní kvóta nízká
 
 async function fetchJson(url, timeoutMs = TIMEOUT_MS) {
   const ctrl = new AbortController();
@@ -47,7 +49,7 @@ function isIsbn(code) {
 
 async function fromGoogleBooks(code) {
   if (!isIsbn(code)) return null;
-  const data = await fetchJson(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(code)}`);
+  const data = await fetchJson(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(code)}` + (GOOGLE_KEY ? `&key=${encodeURIComponent(GOOGLE_KEY)}` : ''));
   const v = data && data.totalItems > 0 && data.items && data.items[0] && data.items[0].volumeInfo;
   if (!v) return null;
   const name = clean([v.title, v.subtitle].filter(Boolean).join(' – '));
@@ -79,12 +81,6 @@ async function fromOpenFacts(code, subdomain, label) {
   };
 }
 
-async function fromBrocade(code) {
-  const data = await fetchJson(`https://www.brocade.io/api/items/${encodeURIComponent(code)}`);
-  if (!data || !data.name) return null;
-  return { name: clean(data.name), brand: clean(data.brand_name), category: clean(data.category), image_url: '', source: 'Brocade' };
-}
-
 async function fromUpcItemDb(code) {
   const data = await fetchJson(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(code)}`);
   if (!data || data.code !== 'OK' || !Array.isArray(data.items) || !data.items.length) return null;
@@ -105,7 +101,6 @@ const FREE = [
   { prio: 5, fn: (c) => fromOpenFacts(c, 'openfoodfacts', 'Open Food Facts') },
   { prio: 5, fn: (c) => fromOpenFacts(c, 'openproductsfacts', 'Open Products Facts') },
   { prio: 5, fn: (c) => fromOpenFacts(c, 'openbeautyfacts', 'Open Beauty Facts') },
-  { prio: 3, fn: (c) => fromBrocade(c) },
 ];
 const FALLBACK = [{ prio: 2, fn: (c) => fromUpcItemDb(c) }];
 
@@ -127,7 +122,7 @@ async function runSources(list, c) {
 
 async function lookupProduct(code) {
   const c = clean(code);
-  if (!c) return null;
+  if (!c || c.length > 64) return null; // reálné kódy mají max ~14 znaků
   const free = await runSources(FREE, c);
   if (free) return free;
   return runSources(FALLBACK, c); // UPCitemdb jen jako záloha
