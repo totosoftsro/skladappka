@@ -193,6 +193,8 @@ body.mode-set .step.step-alert input { border-color: var(--set); color: var(--se
 .searchbox .ico { position: absolute; left: 11px; width: 16px; height: 16px; color: var(--text-faint); pointer-events: none; }
 .searchbox input { height: 36px; font: inherit; font-size: 13px; padding: 0 12px 0 34px; min-width: 230px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); }
 .searchbox input:focus { outline: 0; border-color: var(--accent); box-shadow: var(--ring); }
+.cat-select { height: 36px; font: inherit; font-size: 13px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); max-width: 200px; cursor: pointer; }
+.cat-select:focus { outline: 0; border-color: var(--accent); box-shadow: var(--ring); }
 
 /* Buttons */
 .btn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 550; border-radius: var(--r-sm); cursor: pointer; text-decoration: none; white-space: nowrap; transition: .12s; }

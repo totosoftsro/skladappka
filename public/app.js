@@ -20,13 +20,13 @@ const ICON = {
 function icon(name, cls = 'ico') { return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[name] || ''}</svg>`; }
 
 /* ---------- Lokální nastavení (prohlížeč) ---------- */
-const DEF = { currency: 'Kč', sound: true, theme: 'light', silenceMs: 90, fastAvg: 70 };
+const DEF = { currency: 'Kč', sound: true, theme: 'light', silenceMs: 90, fastAvg: 70, labelType: 'barcode' };
 let cfg = { ...DEF, ...JSON.parse(localStorage.getItem('sklad_cfg') || '{}') };
 function saveCfg() { localStorage.setItem('sklad_cfg', JSON.stringify(cfg)); }
 
 let currentUser = null;
 let atLogin = false;
-const state = { mode: 'in', view: 'inventory', filter: 'all', q: '', sort: 'updated', dir: 'desc', items: [] };
+const state = { mode: 'in', view: 'inventory', filter: 'all', q: '', category: '', sort: 'updated', dir: 'desc', items: [] };
 
 const scanEl = $('#scan'), stepEl = $('#step'), fieldEl = $('#scanfield'), spinnerEl = $('#spinner');
 
@@ -147,7 +147,7 @@ async function afterLogin() {
   $('#op-avatar').textContent = ((currentUser.display_name || '?').trim()[0] || '?').toUpperCase();
   document.body.classList.toggle('is-admin', currentUser.role === 'admin');
   setMode(state.mode); // zachovat režim při znovupřihlášení (např. uprostřed inventury)
-  await Promise.all([loadItems(), loadSummary()]);
+  await Promise.all([loadItems(), loadSummary(), loadCategories()]);
   focusScan();
 }
 async function logout() { try { await api('/api/logout', { method: 'POST' }); } catch {} location.reload(); }
@@ -274,8 +274,18 @@ async function undoLast(id) {
 
 /* ---------- Sklad ---------- */
 function statusDot(it) { if (it.quantity <= 0) return 'zero'; if (it.min_stock > 0 && it.quantity < it.min_stock) return 'low'; return 'ok'; }
+async function loadCategories() {
+  try {
+    const cats = await api('/api/categories');
+    const sel = $('#cat-filter');
+    const cur = state.category;
+    sel.innerHTML = '<option value="">Všechny kategorie</option>' +
+      cats.map((c) => `<option value="${esc(c.category)}"${c.category === cur ? ' selected' : ''}>${esc(c.category)} (${c.n})</option>`).join('');
+  } catch {}
+}
 async function loadItems() {
   const p = new URLSearchParams({ filter: state.filter, sort: state.sort, dir: state.dir });
+  if (state.category) p.set('category', state.category);
   if (state.q) p.set('q', state.q);
   let rows;
   try { rows = await api('/api/items?' + p.toString()); }
@@ -368,6 +378,7 @@ async function loadMovements() {
 /* ---------- Hledání + souhrn ---------- */
 let searchT;
 $('#search').addEventListener('input', (e) => { state.q = e.target.value.trim(); clearTimeout(searchT); searchT = setTimeout(loadItems, 200); });
+$('#cat-filter').addEventListener('change', (e) => { state.category = e.target.value; loadItems(); });
 async function loadSummary() {
   try {
     const s = await api('/api/summary');
@@ -380,21 +391,36 @@ async function loadSummary() {
 }
 
 /* ---------- Tisk štítků (Code128) ---------- */
-function labelHTML(it) {
-  let svg;
-  try { svg = window.Code128(it.code, { height: 64, module: 2 }); }
-  catch { svg = '<div style="color:#b00020;font-size:11px;padding:14px 4px;line-height:1.3">⚠ Kód obsahuje znaky,<br>které nelze zakódovat.</div>'; }
-  return `<div class="label"><div class="l-name">${esc(it.name || '(bez názvu)')}</div>${svg}<div class="l-code">${esc(it.code)}</div>${it.location ? `<div class="l-loc">📍 ${esc(it.location)}</div>` : ''}</div>`;
+function labelHTML(it, qrSvg) {
+  let mark;
+  if (qrSvg !== undefined) {
+    mark = `<div class="l-qr">${qrSvg || '<span style="color:#b00020;font-size:10px">⚠ QR se nepodařilo</span>'}</div>`;
+  } else {
+    try { mark = window.Code128(it.code, { height: 64, module: 2 }); }
+    catch { mark = '<div style="color:#b00020;font-size:11px;padding:14px 4px;line-height:1.3">⚠ Kód obsahuje znaky,<br>které nelze zakódovat.</div>'; }
+  }
+  return `<div class="label"><div class="l-name">${esc(it.name || '(bez názvu)')}</div>${mark}<div class="l-code">${esc(it.code)}</div>${it.location ? `<div class="l-loc">📍 ${esc(it.location)}</div>` : ''}</div>`;
 }
-function printLabels(items) {
+async function printLabels(items) {
   if (!items || !items.length) { toast('Žádné položky k tisku', 'err'); return; }
+  const useQr = cfg.labelType === 'qr';
+  const qr = {};
+  if (useQr) {
+    const codes = [...new Set(items.map((i) => i.code))];
+    await Promise.all(codes.map(async (c) => {
+      try { const r = await fetch('/api/qr.svg?text=' + encodeURIComponent(c)); qr[c] = r.ok ? await r.text() : ''; }
+      catch { qr[c] = ''; }
+    }));
+  }
   const css = `body{font-family:Inter,Arial,sans-serif;margin:0;padding:8px;background:#fff;color:#000}
     .label{display:inline-block;width:58mm;text-align:center;padding:8px;margin:4px;border:1px solid #ddd;border-radius:6px;page-break-inside:avoid;vertical-align:top}
     .l-name{font-size:13px;font-weight:700;margin-bottom:5px;min-height:34px;line-height:1.2}
     .l-code{font-family:monospace;font-size:12px;margin-top:3px;letter-spacing:1px}
     .l-loc{font-size:11px;color:#555;margin-top:2px}
+    .l-qr{display:flex;justify-content:center}.l-qr svg{width:26mm;height:26mm}
     svg{max-width:100%;height:auto}@media print{.label{border:none}}`;
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Štítky (${items.length})</title><style>${css}</style></head><body>${items.map(labelHTML).join('')}</body></html>`;
+  const body = items.map((it) => labelHTML(it, useQr ? (qr[it.code] || '') : undefined)).join('');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Štítky (${items.length})</title><style>${css}</style></head><body>${body}</body></html>`;
   const w = window.open('', '_blank', 'width=540,height=680');
   if (!w) { toast('Povol vyskakovací okna kvůli tisku', 'err'); return; }
   w.document.open(); w.document.write(html); w.document.close();
@@ -511,7 +537,11 @@ async function openSettings() {
       <div class="modal-actions"><button class="btn danger-btn" id="ac-logout">${icon('logout')} Odhlásit se</button><span class="spacer"></span></div>
 
       <div class="m-section-title">Vzhled a chování</div>
-      <div class="form-grid">${field('Měna', 's-currency', cfg.currency)}<div class="fld"></div></div>
+      <div class="form-grid">${field('Měna', 's-currency', cfg.currency)}
+        <div class="fld"><label for="s-label">Typ štítku</label><select id="s-label">
+          <option value="barcode"${cfg.labelType === 'barcode' ? ' selected' : ''}>Čárový kód (Code128)</option>
+          <option value="qr"${cfg.labelType === 'qr' ? ' selected' : ''}>QR kód</option>
+        </select></div></div>
       <div class="switch-row"><div><div class="lab">Zvuková odezva</div><div class="sub">Pípnutí při skenu</div></div><input id="s-sound" type="checkbox" aria-label="Zvuková odezva" ${cfg.sound ? 'checked' : ''}></div>
       <div class="switch-row"><div><div class="lab">Tmavý režim</div></div><input id="s-theme" type="checkbox" aria-label="Tmavý režim" ${cfg.theme === 'dark' ? 'checked' : ''}></div>
       <div class="m-section-title">Citlivost čtečky (pokročilé)</div>
@@ -530,6 +560,7 @@ async function openSettings() {
   };
   $('#s-save').onclick = () => {
     cfg.currency = $('#s-currency').value.trim() || 'Kč';
+    cfg.labelType = $('#s-label').value === 'qr' ? 'qr' : 'barcode';
     cfg.sound = $('#s-sound').checked; cfg.theme = $('#s-theme').checked ? 'dark' : 'light';
     cfg.silenceMs = Math.min(500, Math.max(30, parseInt($('#s-silenceMs').value, 10) || DEF.silenceMs));
     cfg.fastAvg = Math.min(300, Math.max(20, parseInt($('#s-fastAvg').value, 10) || DEF.fastAvg));
@@ -560,6 +591,66 @@ exportMenu.addEventListener('click', (e) => { if (e.target.closest('a')) exportM
 document.addEventListener('click', (e) => { if (exportMenu.open && !exportMenu.contains(e.target)) exportMenu.open = false; });
 $('#btn-labels').addEventListener('click', () => { exportMenu.open = false; printLabels(state.items); });
 $('#btn-restore').addEventListener('click', () => { exportMenu.open = false; $('#restore-file').click(); });
+
+/* ---------- Import z CSV ---------- */
+// Robustní parser: zvládne oddělovač ; nebo , , uvozovky, BOM, CRLF
+function parseCsv(text) {
+  text = text.replace(/^﻿/, '');
+  const firstLine = text.slice(0, text.search(/\r?\n|$/));
+  const delim = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  const rows = []; let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === delim) { row.push(cur); cur = ''; }
+    else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (ch === '\r') { /* skip */ }
+    else cur += ch;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim() !== ''));
+}
+// Mapování názvů sloupců (CZ i EN, bez diakritiky/velikosti) na pole položky
+const COL_MAP = {
+  kod: 'code', code: 'code', ean: 'code', carovykod: 'code',
+  nazev: 'name', name: 'name', popis: 'name',
+  mnozstvi: 'quantity', quantity: 'quantity', qty: 'quantity', pocet: 'quantity', stav: 'quantity',
+  jednotka: 'unit', unit: 'unit', mj: 'unit',
+  cena: 'price', price: 'price', cenakus: 'price', cenaks: 'price',
+  min: 'min_stock', minzasoba: 'min_stock', minimum: 'min_stock', min_stock: 'min_stock',
+  kategorie: 'category', category: 'category', skupina: 'category',
+  umisteni: 'location', location: 'location', regal: 'location',
+  dodavatel: 'supplier', supplier: 'supplier',
+  znacka: 'brand', brand: 'brand',
+  poznamka: 'note', note: 'note',
+};
+const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+$('#btn-import').addEventListener('click', () => { exportMenu.open = false; $('#import-file').click(); });
+$('#import-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  e.target.value = '';
+  try {
+    const grid = parseCsv(await file.text());
+    if (grid.length < 2) return toast('Soubor je prázdný nebo nemá data', 'err');
+    const header = grid[0].map((h) => COL_MAP[norm(h)] || null);
+    if (!header.includes('code')) return toast('Chybí sloupec „kód" (kód/code/ean)', 'err');
+    const rows = grid.slice(1).map((r) => {
+      const o = {};
+      header.forEach((key, i) => { if (key && r[i] !== undefined) o[key] = String(r[i]).trim(); });
+      // čísla z české lokalizace (čárka → tečka)
+      for (const f of ['quantity', 'price', 'min_stock']) if (f in o && o[f] !== '') o[f] = o[f].replace(/\s/g, '').replace(',', '.');
+      return o;
+    }).filter((o) => o.code);
+    if (!rows.length) return toast('Žádný řádek s vyplněným kódem', 'err');
+    if (!confirm(`Importovat ${rows.length} položek z „${file.name}"?\nExistující kódy se aktualizují, nové se založí.`)) return;
+    const res = await api('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) });
+    toast(`Import hotov: ${res.created} nových, ${res.updated} upravených${res.skipped ? `, ${res.skipped} přeskočeno` : ''}`, 'ok');
+    await Promise.all([loadItems(), loadSummary(), loadCategories()]);
+  } catch (err) { toast('Import selhal: ' + err.message, 'err'); }
+});
 $('#restore-file').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
   try {

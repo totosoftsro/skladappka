@@ -7,6 +7,7 @@ const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
 const express = require('express');
+const QRCode = require('qrcode');
 const compression = require('compression');
 const { db, initDb } = require('./db');
 const { lookupProduct } = require('./lookup');
@@ -47,9 +48,10 @@ app.use(compression());
 // Tělo: malý limit globálně, velký jen pro obnovu zálohy (a GET/HEAD vůbec neparsujeme)
 const jsonSmall = express.json({ limit: '256kb' });
 const jsonLarge = express.json({ limit: '64mb' });
+const BIG_BODY = new Set(['/api/restore', '/api/import']);
 app.use((req, res, next) => {
   if (req.method === 'GET' || req.method === 'HEAD') return next();
-  return (req.path === '/api/restore' ? jsonLarge : jsonSmall)(req, res, next);
+  return (BIG_BODY.has(req.path) ? jsonLarge : jsonSmall)(req, res, next);
 });
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -166,12 +168,19 @@ app.get('/api/items', (req, res) => {
   const sortMap = { name: 'name', code: 'code', quantity: 'quantity', price: 'price', updated: 'updated_at', value: '(quantity*price)' };
   const sort = sortMap[req.query.sort] || 'updated_at';
   const dir = String(req.query.dir).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+  const category = String(req.query.category || '').trim();
   const where = [], params = [];
   if (q) { where.push('(code LIKE ? OR name LIKE ? OR brand LIKE ? OR location LIKE ? OR supplier LIKE ?)'); const l = `%${q}%`; params.push(l, l, l, l, l); }
   if (filter === 'low') where.push('min_stock > 0 AND quantity < min_stock');
   else if (filter === 'zero') where.push('quantity <= 0');
+  if (category) { where.push('category = ?'); params.push(category); }
   const sql = 'SELECT * FROM items' + (where.length ? ' WHERE ' + where.join(' AND ') : '') + ` ORDER BY ${sort} ${dir}, name ASC`;
   res.json(db.prepare(sql).all(...params));
+});
+
+/* ---- Kategorie (pro filtr) ---- */
+app.get('/api/categories', (req, res) => {
+  res.json(db.prepare("SELECT category, COUNT(*) AS n FROM items WHERE category != '' GROUP BY category ORDER BY category").all());
 });
 
 /* ---- Sken: příjem / výdej / inventura ---- */
@@ -335,6 +344,15 @@ app.get('/api/summary', (req, res) => {
   ).get());
 });
 
+/* ---- QR kód jako SVG (pro tisk štítků) ---- */
+app.get('/api/qr.svg', wrap(async (req, res) => {
+  const text = String(req.query.text || '').slice(0, 512);
+  if (!text) return res.status(400).json({ error: 'Chybí text' });
+  const svg = await QRCode.toString(text, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+  res.send(svg);
+}));
+
 /* ---- CSV / záloha ---- */
 function toCsv(head, cols, rows) {
   const esc = (v) => {
@@ -367,6 +385,54 @@ app.get('/api/backup.json', (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="sklad-zaloha.json"');
   res.json({ app: 'skladappka', exported_at: nowIso(), items: db.prepare('SELECT * FROM items').all(), movements: db.prepare('SELECT * FROM movements').all() });
 });
+/* ---- Hromadný import položek z CSV (admin) ---- */
+// Tělo: { rows: [{ code, name?, quantity?, unit?, price?, min_stock?, category?, location?, supplier?, note? }] }
+// Existující kód aktualizuje (jen vyplněná pole), nový zakládá. Nastaví-li se množství,
+// zapíše se inventurní pohyb (type 'set'), aby zůstala auditní stopa.
+app.post('/api/import', auth.requireAdmin, (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : null;
+  if (!rows) return res.status(400).json({ error: 'Chybí data (rows)' });
+  if (rows.length > 100000) return res.status(413).json({ error: 'Příliš mnoho řádků' });
+  const user = req.user.display_name;
+  const TEXT = ['name', 'brand', 'category', 'location', 'note', 'supplier', 'unit'];
+  let created = 0, updated = 0, skipped = 0;
+  const tx = db.transaction(() => {
+    for (const r of rows) {
+      const code = String(r.code || '').trim().slice(0, 128);
+      if (!code) { skipped++; continue; }
+      const exists = getItem.get(code);
+      const ts = nowIso();
+      if (!exists) {
+        db.prepare(`INSERT INTO items (code, name, brand, category, image_url, quantity, min_stock, price, unit, supplier, location, note, source, created_at, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'import', ?, ?)`)
+          .run(code, String(r.name || ''), String(r.brand || ''), String(r.category || ''), sanitizeImageUrl(r.image_url),
+            'quantity' in r ? round3(r.quantity) : 0, Math.max(0, round3(r.min_stock)), money2(r.price),
+            String(r.unit || 'ks'), String(r.supplier || ''), String(r.location || ''), String(r.note || ''), ts, ts);
+        created++;
+      } else {
+        const sets = [], vals = [];
+        for (const f of TEXT) if (f in r && String(r[f]) !== '') { sets.push(`${f} = ?`); vals.push(String(r[f])); }
+        if ('image_url' in r) { sets.push('image_url = ?'); vals.push(sanitizeImageUrl(r.image_url)); }
+        if ('min_stock' in r) { sets.push('min_stock = ?'); vals.push(Math.max(0, round3(r.min_stock))); }
+        if ('price' in r) { sets.push('price = ?'); vals.push(money2(r.price)); }
+        if (sets.length) { sets.push('updated_at = ?'); vals.push(ts, code); db.prepare(`UPDATE items SET ${sets.join(', ')} WHERE code = ?`).run(...vals); }
+        updated++;
+      }
+      // nastavit množství (absolutně) + auditní pohyb
+      if ('quantity' in r) {
+        const before = getItem.get(code).quantity;
+        const target = round3(r.quantity);
+        if (target !== before) {
+          db.prepare('UPDATE items SET quantity = ?, updated_at = ? WHERE code = ?').run(target, ts, code);
+          logMovement(code, getItem.get(code).name, round3(target - before), 'set', target, user);
+        }
+      }
+    }
+  });
+  try { tx(); res.json({ ok: true, created, updated, skipped, total: rows.length }); }
+  catch (e) { console.error('[import]', e.message); res.status(400).json({ error: 'Import selhal: ' + e.message }); }
+});
+
 app.post('/api/restore', auth.requireAdmin, (req, res) => {
   const itemsIn = Array.isArray(req.body.items) ? req.body.items : null;
   if (!itemsIn) return res.status(400).json({ error: 'Neplatná záloha (chybí items)' });

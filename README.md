@@ -10,9 +10,12 @@ prohlížeč (počítač i mobil).
 
 - **Skenování bez Enteru** — appka rozpozná rychlou dávku znaků ze čtečky a sken
   odešle sama; ruční psaní se omylem neodešle. Citlivost lze doladit v Nastavení.
-- **Automatické dohledání zboží** podle EAN/UPC/ISBN ze 6 bezplatných zdrojů
-  (Open Food/Products/Beauty Facts, Google Books, Brocade, UPCitemdb jako
-  záloha). Výsledek se uloží — podruhé se už nehledá.
+- **Automatické dohledání zboží** podle EAN/UPC/ISBN z bezplatných zdrojů
+  (Open Food/Products/Beauty Facts, Google Books, UPCitemdb jako záloha).
+  Výsledek se uloží — podruhé se už nehledá.
+- **Hromadný import z CSV/Excelu** — migrace ze stávající tabulky jedním
+  souborem (existující kódy aktualizuje, nové zakládá).
+- **Kategorie** + filtr podle kategorie pro přehlednou organizaci skladu.
 - **Tři režimy:** Příjem · Výdej · Inventura (nastaví skutečný stav).
 - **Jednotky a desetinná množství** — ks, m, m², kg, l, bal… (např. „výdej 2,5 m“).
   Záporný stav (výdej do mínusu) je povolen.
@@ -21,7 +24,8 @@ prohlížeč (počítač i mobil).
 - **Přihlašování uživatelů** (admin / operátor), jméno se zapisuje ke každému
   pohybu. Kompletní **historie pohybů**.
 - **Undo** posledního pohybu jedním klikem.
-- **Tisk štítků** s čárovým kódem (Code128) — jednotlivě i hromadně dle filtru.
+- **Tisk štítků** s **čárovým kódem (Code128) nebo QR kódem** (volba v Nastavení) —
+  jednotlivě i hromadně dle filtru.
 - **E-mailová upozornění** při poklesu pod minimum (vlastní SMTP) + ruční report.
 - **Export** skladu a pohybů do CSV (Excel, česká locale), **záloha/obnova** JSON.
 - **Mobilní rozhraní** (karty, spodní listy) + přidání na plochu (PWA, bez offline režimu).
@@ -91,6 +95,20 @@ docker run -d --name sklad -p 3000:3000 -v sklad-data:/data --restart unless-sto
   přes **Export → Obnovit ze zálohy…** (jen admin).
 - Souborová záloha: kopíruj `data/sklad.db` **včetně** `sklad.db-wal` (WAL
   režim), ideálně po zastavení serveru — při ukončení se WAL zapíše automaticky.
+
+## Import z CSV
+
+V appce **Export → Import z CSV…**. První řádek jsou názvy sloupců (česky i
+anglicky, na velikosti/diakritice nezáleží). Rozpoznají se mj.:
+`kód` (povinný), `název`, `množství`, `jednotka`, `cena`, `min. zásoba`,
+`kategorie`, `umístění`, `dodavatel`. Oddělovač `;` i `,`, desetinná čárka i
+tečka. Existující kódy se aktualizují (jen vyplněná pole), nové se založí.
+
+```
+Kód;Název;Množství;Jednotka;Cena/ks;Min. zásoba;Kategorie;Umístění
+8594001234567;Vrták 6mm HSS;120;ks;12,50;20;Nářadí;A1
+8594007654321;Kabel CYKY 3x1,5;250,5;m;18,90;50;Elektro;B2
+```
 
 ## Zabezpečení
 

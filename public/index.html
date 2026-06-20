@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.3" />
+  <link rel="stylesheet" href="style.css?v=1.0.4" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#347d4f" />
@@ -102,6 +102,7 @@
           <button class="fil" data-filter="zero">Vyprodáno</button>
         </div>
         <div class="toolbar-right">
+          <select id="cat-filter" class="cat-select" aria-label="Filtr podle kategorie"><option value="">Všechny kategorie</option></select>
           <div class="searchbox">
             <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <input id="search" type="search" placeholder="Hledat ve skladu…" aria-label="Hledat ve skladu" />
@@ -109,6 +110,7 @@
           <details class="menu" id="export-menu">
             <summary class="btn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg> Export <svg class="ico chev-sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
             <div class="menu-list">
+              <button id="btn-import">Import z CSV…</button>
               <a href="/api/export.csv">Sklad → CSV</a>
               <a href="/api/movements.csv">Pohyby → CSV</a>
               <button id="btn-labels">Tisk štítků (dle filtru)</button>
@@ -117,6 +119,7 @@
             </div>
           </details>
           <input type="file" id="restore-file" accept="application/json" hidden />
+          <input type="file" id="import-file" accept=".csv,text/csv" hidden />
         </div>
       </div>
 
@@ -173,7 +176,7 @@
 
   <div id="overlay" class="overlay hidden"><div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modal-body"></div></div></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="barcode.js?v=1.0.3"></script>
-  <script src="app.js?v=1.0.3"></script>
+  <script src="barcode.js?v=1.0.4"></script>
+  <script src="app.js?v=1.0.4"></script>
 </body>
 </html>

@@ -227,3 +227,39 @@ test('smazání položky: 200, podruhé 404', async () => {
   r = await api('/api/items/CSV-1', { method: 'DELETE' });
   assert.strictEqual(r.status, 404);
 });
+
+test('QR endpoint vrací SVG', async () => {
+  const r = await api('/api/qr.svg?text=4006381333931');
+  assert.strictEqual(r.status, 200);
+  assert.match(r.headers.get('content-type'), /svg/);
+  assert.match(await r.text(), /^<svg/);
+});
+
+test('CSV import: zalozi/aktualizuje/preskoci + kategorie + filtr', async () => {
+  const rows = [
+    { code: 'IMP-1', name: 'Polozka 1', quantity: '10', unit: 'ks', category: 'TestKat', min_stock: '3' },
+    { code: 'IMP-2', name: 'Polozka 2', quantity: '2.5', unit: 'm', category: 'TestKat' },
+    { code: '', name: 'bez kodu' },
+    { code: 'IMP-1', min_stock: '7' },
+  ];
+  const r = await json('/api/import', { method: 'POST', body: JSON.stringify({ rows }) });
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual([r.body.created, r.body.updated, r.body.skipped], [2, 1, 1]);
+  const it = (await json('/api/items?q=IMP-1')).body.find((x) => x.code === 'IMP-1');
+  assert.strictEqual(it.quantity, 10);
+  assert.strictEqual(it.min_stock, 7);
+  const cats = (await json('/api/categories')).body;
+  assert.ok(cats.some((c) => c.category === 'TestKat' && c.n === 2));
+  assert.strictEqual((await json('/api/items?category=TestKat')).body.length, 2);
+  await api('/api/items/IMP-1', { method: 'DELETE' });
+  await api('/api/items/IMP-2', { method: 'DELETE' });
+});
+
+test('import je jen pro admina (operator 403)', async () => {
+  await json('/api/users', { method: 'POST', body: JSON.stringify({ username: 'imp-op', display_name: 'Imp Op', password: 'heslo123', role: 'user' }) });
+  const login = await fetch(B + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'imp-op', password: 'heslo123' }) });
+  const c = login.headers.get('set-cookie').split(';')[0];
+  const r = await fetch(B + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: c }, body: JSON.stringify({ rows: [] }) });
+  assert.strictEqual(r.status, 403);
+  await api('/api/users/imp-op', { method: 'DELETE' });
+});
