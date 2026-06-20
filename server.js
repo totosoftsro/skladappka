@@ -51,7 +51,15 @@ const jsonLarge = express.json({ limit: '64mb' });
 const BIG_BODY = new Set(['/api/restore', '/api/import']);
 app.use((req, res, next) => {
   if (req.method === 'GET' || req.method === 'HEAD') return next();
-  return (BIG_BODY.has(req.path) ? jsonLarge : jsonSmall)(req, res, next);
+  if (BIG_BODY.has(req.path)) {
+    // Velké tělo (import / obnova) parsuj až po ověření admina – ať se 64 MB
+    // neparsuje neautentizovanému klientovi (ochrana paměti).
+    const u = auth.userByToken(auth.parseCookies(req).sid);
+    if (!u || u.role !== 'admin') return res.status(403).json({ error: 'Jen pro administrátora' });
+    req.user = u;
+    return jsonLarge(req, res, next);
+  }
+  return jsonSmall(req, res, next);
 });
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');

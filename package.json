@@ -1,6 +1,6 @@
 {
   "name": "skladappka",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Skladová evidence s napojením na USB čtečku čárových kódů a automatickým vyhledáváním názvů zboží podle kódu na internetu.",
   "main": "server.js",
   "type": "commonjs",
