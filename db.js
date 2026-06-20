@@ -78,8 +78,18 @@ function initDb() {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT NOT NULL,
+      contact    TEXT NOT NULL DEFAULT '',
+      lead_days  INTEGER NOT NULL DEFAULT 0,
+      note       TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_movements_code ON movements(code);
     CREATE INDEX IF NOT EXISTS idx_items_name ON items(name);
+    CREATE INDEX IF NOT EXISTS idx_items_supplier ON items(supplier);
   `);
 
   // ---- Migrace pro starší databáze ----

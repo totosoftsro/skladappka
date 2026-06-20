@@ -147,7 +147,7 @@ async function afterLogin() {
   $('#op-avatar').textContent = ((currentUser.display_name || '?').trim()[0] || '?').toUpperCase();
   document.body.classList.toggle('is-admin', currentUser.role === 'admin');
   setMode(state.mode); // zachovat režim při znovupřihlášení (např. uprostřed inventury)
-  await Promise.all([loadItems(), loadSummary(), loadCategories()]);
+  await Promise.all([loadItems(), loadSummary(), loadCategories(), loadSuppliers()]);
   focusScan();
 }
 async function logout() { try { await api('/api/logout', { method: 'POST' }); } catch {} location.reload(); }
@@ -182,10 +182,12 @@ stepEl.addEventListener('input', updateStepStyle);
 $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $$('.nav-item').forEach((b) => b.addEventListener('click', () => {
   state.view = b.dataset.view;
-  $$('.nav-item').forEach((x) => x.classList.toggle('active', x === b));
+  $$('.nav-item').forEach((x) => { const a = x === b; x.classList.toggle('active', a); x.setAttribute('aria-current', a ? 'page' : 'false'); });
   $('#view-inventory').classList.toggle('hidden', state.view !== 'inventory');
   $('#view-history').classList.toggle('hidden', state.view !== 'history');
+  $('#view-reorder').classList.toggle('hidden', state.view !== 'reorder');
   if (state.view === 'history') loadMovements();
+  if (state.view === 'reorder') loadReorder();
 }));
 function setFilter(f) { state.filter = f; $$('.fil').forEach((x) => x.classList.toggle('active', x.dataset.filter === f)); loadItems(); }
 $$('.fil').forEach((b) => b.addEventListener('click', () => setFilter(b.dataset.filter)));
@@ -375,6 +377,44 @@ async function loadMovements() {
   }).join('');
 }
 
+/* ---------- Doobjednání ---------- */
+async function loadReorder() {
+  let data;
+  try { data = await api('/api/reorder'); } catch (e) { if (e.status === 401) return; data = { groups: [], totalCost: 0, count: 0 }; }
+  const el = $('#reorder-content');
+  if (!data.count) {
+    el.innerHTML = `<div class="panel"><div class="empty"><svg class="empty-ico" viewBox="0 0 24 24">${ICON.box}</svg><div>Vše je nad minimem 👍</div><div class="empty-sub">Až zásoba klesne pod limit, objeví se tu návrh doobjednání.</div></div></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="reorder-head">
+      <div><strong>${data.count}</strong> položek k doobjednání · odhad nákupu <strong>${money(data.totalCost)}</strong></div>
+      <a class="btn" href="/api/reorder.csv">⬇ Export objednávky (CSV)</a>
+    </div>
+    ${data.groups.map((g) => `
+      <div class="panel reorder-group">
+        <div class="panel-head reorder-group-head">
+          <span class="rg-name">${g.supplier ? esc(g.supplier) : 'Bez dodavatele'}</span>
+          <span class="rg-meta">${g.lead_days != null && g.lead_days > 0 ? 'dodání ~' + g.lead_days + ' dní · ' : ''}${g.contact ? esc(g.contact) + ' · ' : ''}${money(g.totalCost)}</span>
+        </div>
+        <div class="table-scroll"><table class="grid"><thead>
+          <tr><th>Kód</th><th>Název</th><th class="c-qty">Stav</th><th class="c-min">Min.</th><th class="c-qty">Doobjednat</th><th class="c-price">Odhad</th></tr>
+        </thead><tbody>${g.items.map((i) => `<tr>
+          <td class="code">${esc(i.code)}</td><td>${esc(i.name || '—')}</td>
+          <td class="c-qty"><strong style="color:var(--danger)">${qfmt(i.quantity)}</strong> ${esc(i.unit)}</td>
+          <td class="c-min">${qfmt(i.min_stock)}</td>
+          <td class="c-qty"><strong class="rg-need">${qfmt(i.suggested)}</strong> ${esc(i.unit)}</td>
+          <td class="c-price">${money(i.cost)}</td></tr>`).join('')}</tbody></table></div>
+      </div>`).join('')}`;
+}
+async function loadSuppliers() {
+  try {
+    const sup = await api('/api/suppliers');
+    $('#suppliers').innerHTML = sup.map((s) => `<option value="${esc(s.name)}"></option>`).join('');
+    return sup;
+  } catch { return []; }
+}
+
 /* ---------- Hledání + souhrn ---------- */
 let searchT;
 $('#search').addEventListener('input', (e) => { state.q = e.target.value.trim(); clearTimeout(searchT); searchT = setTimeout(loadItems, 200); });
@@ -446,7 +486,7 @@ async function openDetail(code) {
         ${field('Značka', 'd-brand', it.brand)}${field('Kategorie', 'd-category', it.category)}
         ${field('Množství', 'd-quantity', it.quantity, 'number', 'step="any"')}${field('Min. zásoba', 'd-min_stock', it.min_stock || 0, 'number', 'min="0" step="any"')}
         ${field('Cena / ' + esc(it.unit || 'ks'), 'd-price', it.price || 0, 'number', 'min="0" step="0.01"')}${field('Jednotka', 'd-unit', it.unit || 'ks', 'text', 'list="units"')}
-        ${field('Umístění', 'd-location', it.location)}${field('Dodavatel', 'd-supplier', it.supplier)}
+        ${field('Umístění', 'd-location', it.location)}${field('Dodavatel', 'd-supplier', it.supplier, 'text', 'list="suppliers"')}
         <div class="fld full"><label>Obrázek (URL)</label><input id="d-image_url" value="${esc(it.image_url)}"></div>
         <div class="fld full"><label>Poznámka</label><textarea id="d-note">${esc(it.note)}</textarea></div>
       </div>
@@ -480,7 +520,7 @@ $('#btn-add').addEventListener('click', () => {
       ${field('Čárový kód (volitelně)', 'a-code', '')}${field('Název', 'a-name', '')}
       ${field('Počáteční množství', 'a-quantity', 0, 'number', 'step="any"')}${field('Jednotka', 'a-unit', 'ks', 'text', 'list="units"')}
       ${field('Cena / ks', 'a-price', 0, 'number', 'min="0" step="0.01"')}${field('Min. zásoba', 'a-min_stock', 0, 'number', 'min="0" step="any"')}
-      ${field('Umístění', 'a-location', '')}${field('Dodavatel', 'a-supplier', '')}
+      ${field('Umístění', 'a-location', '')}${field('Dodavatel', 'a-supplier', '', 'text', 'list="suppliers"')}
       <div class="fld full"><label>Poznámka</label><textarea id="a-note"></textarea></div>
     </div>
     <p class="hint">Když vyplníš jen kód a necháš název prázdný, appka ho zkusí dohledat na internetu.</p>
@@ -498,7 +538,12 @@ $('#btn-add').addEventListener('click', () => {
 async function openSettings() {
   let adminHtml = '';
   if (currentUser.role === 'admin') {
-    const [users, st] = await Promise.all([api('/api/users').catch(() => []), api('/api/settings').catch(() => ({}))]);
+    const [users, st, suppliers] = await Promise.all([api('/api/users').catch(() => []), api('/api/settings').catch(() => ({})), api('/api/suppliers').catch(() => [])]);
+    const supRows = suppliers.map((s) => `
+      <div class="user-row"><span class="u-rname">${esc(s.name)}</span>${s.contact ? ` <span class="code">${esc(s.contact)}</span>` : ''}
+        ${s.lead_days > 0 ? `<span class="u-role user">${s.lead_days} dní</span>` : ''}<span class="spacer"></span>
+        <button class="iconbtn danger" data-delsup="${s.id}" aria-label="Smazat dodavatele" title="Smazat">${icon('trash')}</button>
+      </div>`).join('');
     const userRows = users.map((u) => `
       <div class="user-row"><span class="u-rname">${esc(u.display_name)}</span> <span class="code">${esc(u.username)}</span>
         <span class="u-role ${u.role}">${u.role === 'admin' ? 'admin' : 'uživatel'}</span><span class="spacer"></span>
@@ -514,6 +559,14 @@ async function openSettings() {
         <div class="fld"><label>Role</label><select id="nu-role"><option value="user">uživatel</option><option value="admin">admin</option></select></div>
       </div>
       <div class="modal-actions"><span class="spacer"></span><button class="btn" id="nu-add">${icon('plus')} Přidat uživatele</button></div>
+
+      <div class="m-section-title">Dodavatelé</div>
+      <div id="sup-list">${supRows || '<div class="hint">Zatím žádní dodavatelé.</div>'}</div>
+      <div class="form-grid" style="margin-top:8px">
+        ${field('Název', 'ns-name', '')}${field('Kontakt (e-mail/tel.)', 'ns-contact', '')}
+        ${field('Dodací lhůta (dní)', 'ns-lead', 0, 'number', 'min="0"')}<div class="fld"></div>
+      </div>
+      <div class="modal-actions"><span class="spacer"></span><button class="btn" id="ns-add">${icon('plus')} Přidat dodavatele</button></div>
 
       <div class="m-section-title">E-mailová upozornění (pod minimum)</div>
       <div class="switch-row"><div><div class="lab">Posílat upozornění e-mailem</div><div class="sub">Když zásoba klesne pod minimum</div></div><input id="ml-enabled" type="checkbox" aria-label="Posílat upozornění e-mailem" ${st.enabled ? 'checked' : ''}></div>
@@ -577,6 +630,12 @@ function wireAdminSettings() {
   };
   $$('[data-deluser]').forEach((b) => b.onclick = async () => { if (!confirm(`Smazat uživatele ${b.dataset.deluser}?`)) return; try { await api('/api/users/' + encodeURIComponent(b.dataset.deluser), { method: 'DELETE' }); toast('Smazáno', 'ok'); openSettings(); } catch (err) { toast(err.message, 'err'); } });
   $$('[data-pw]').forEach((b) => b.onclick = async () => { const pw = prompt('Nové heslo pro ' + b.dataset.pw + ':'); if (!pw) return; try { await api('/api/users/' + encodeURIComponent(b.dataset.pw) + '/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) }); toast('Heslo změněno', 'ok'); } catch (err) { toast(err.message, 'err'); } });
+  $('#ns-add').onclick = async () => {
+    const name = $('#ns-name').value.trim(); if (!name) return toast('Zadej název dodavatele', 'err');
+    try { await api('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, contact: $('#ns-contact').value.trim(), lead_days: parseInt($('#ns-lead').value, 10) || 0 }) }); toast('Dodavatel přidán', 'ok'); await loadSuppliers(); openSettings(); }
+    catch (err) { toast(err.message, 'err'); }
+  };
+  $$('[data-delsup]').forEach((b) => b.onclick = async () => { if (!confirm('Smazat dodavatele?')) return; try { await api('/api/suppliers/' + b.dataset.delsup, { method: 'DELETE' }); toast('Smazáno', 'ok'); await loadSuppliers(); openSettings(); } catch (err) { toast(err.message, 'err'); } });
   const saveMail = async () => api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: $('#ml-enabled').checked, host: $('#ml-host').value.trim(), port: parseInt($('#ml-port').value, 10) || 587, secure: $('#ml-secure').checked, user: $('#ml-user').value.trim(), pass: $('#ml-pass').value, from: $('#ml-from').value.trim(), to: $('#ml-to').value.trim() }) });
   $('#ml-save').onclick = async () => { try { await saveMail(); toast('Nastavení e-mailu uloženo', 'ok'); } catch (err) { toast(err.message, 'err'); } };
   $('#ml-test').onclick = async () => { try { await saveMail(); await api('/api/alert/test', { method: 'POST' }); toast('Testovací e-mail odeslán', 'ok'); } catch (err) { toast(err.message, 'err'); } };

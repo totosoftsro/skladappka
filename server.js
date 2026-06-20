@@ -344,6 +344,66 @@ app.get('/api/summary', (req, res) => {
   ).get());
 });
 
+/* ---- Dodavatelé ---- */
+const getSupplier = db.prepare('SELECT * FROM suppliers WHERE id = ?');
+app.get('/api/suppliers', (req, res) => {
+  res.json(db.prepare('SELECT * FROM suppliers ORDER BY name').all());
+});
+app.post('/api/suppliers', auth.requireAdmin, (req, res) => {
+  const name = String(req.body.name || '').trim().slice(0, 120);
+  if (!name) return res.status(400).json({ error: 'Chybí název dodavatele' });
+  const r = db.prepare('INSERT INTO suppliers (name, contact, lead_days, note, created_at) VALUES (?,?,?,?,?)')
+    .run(name, String(req.body.contact || '').slice(0, 200), Math.max(0, Math.floor(Number(req.body.lead_days) || 0)), String(req.body.note || '').slice(0, 500), nowIso());
+  res.json(getSupplier.get(r.lastInsertRowid));
+});
+app.patch('/api/suppliers/:id', auth.requireAdmin, (req, res) => {
+  const s = getSupplier.get(req.params.id);
+  if (!s) return res.status(404).json({ error: 'Dodavatel neexistuje' });
+  const sets = [], vals = [];
+  if ('name' in req.body) { const n = String(req.body.name || '').trim(); if (!n) return res.status(400).json({ error: 'Název nesmí být prázdný' }); sets.push('name = ?'); vals.push(n.slice(0, 120)); }
+  if ('contact' in req.body) { sets.push('contact = ?'); vals.push(String(req.body.contact || '').slice(0, 200)); }
+  if ('lead_days' in req.body) { sets.push('lead_days = ?'); vals.push(Math.max(0, Math.floor(Number(req.body.lead_days) || 0))); }
+  if ('note' in req.body) { sets.push('note = ?'); vals.push(String(req.body.note || '').slice(0, 500)); }
+  if (sets.length) { vals.push(req.params.id); db.prepare(`UPDATE suppliers SET ${sets.join(', ')} WHERE id = ?`).run(...vals); }
+  res.json(getSupplier.get(req.params.id));
+});
+app.delete('/api/suppliers/:id', auth.requireAdmin, (req, res) => {
+  const r = db.prepare('DELETE FROM suppliers WHERE id = ?').run(req.params.id);
+  if (r.changes === 0) return res.status(404).json({ error: 'Dodavatel neexistuje' });
+  res.json({ ok: true });
+});
+
+/* ---- Návrh doobjednání: co je pod minimem, kolik dokoupit, od koho ---- */
+app.get('/api/reorder', (req, res) => {
+  const low = db.prepare('SELECT * FROM items WHERE min_stock > 0 AND quantity < min_stock ORDER BY supplier, name').all();
+  const supByName = new Map(db.prepare('SELECT * FROM suppliers').all().map((s) => [s.name, s]));
+  const groups = new Map();
+  let totalCost = 0;
+  for (const it of low) {
+    const key = it.supplier || '';
+    if (!groups.has(key)) {
+      const sup = supByName.get(key);
+      groups.set(key, { supplier: key, contact: sup ? sup.contact : '', lead_days: sup ? sup.lead_days : null, items: [], totalCost: 0 });
+    }
+    const suggested = round3(it.min_stock - it.quantity);
+    const cost = money2(suggested * it.price);
+    const g = groups.get(key);
+    g.items.push({ code: it.code, name: it.name, quantity: it.quantity, min_stock: it.min_stock, suggested, unit: it.unit, price: it.price, cost });
+    g.totalCost = money2(g.totalCost + cost);
+    totalCost = money2(totalCost + cost);
+  }
+  res.json({ groups: [...groups.values()], totalCost, count: low.length });
+});
+app.get('/api/reorder.csv', (req, res) => {
+  const low = db.prepare('SELECT * FROM items WHERE min_stock > 0 AND quantity < min_stock ORDER BY supplier, name').all();
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="doobjednat.csv"');
+  res.send(toCsv(
+    ['Dodavatel', 'Kód', 'Název', 'Stav', 'Min. zásoba', 'Doobjednat', 'Jednotka', 'Cena/ks', 'Cena celkem'],
+    ['supplier', 'code', 'name', (r) => dec(r.quantity), (r) => dec(r.min_stock), (r) => dec(round3(r.min_stock - r.quantity)), 'unit', (r) => dec(r.price), (r) => dec(money2((r.min_stock - r.quantity) * r.price))],
+    low));
+});
+
 /* ---- QR kód jako SVG (pro tisk štítků) ---- */
 app.get('/api/qr.svg', wrap(async (req, res) => {
   const text = String(req.query.text || '').slice(0, 512);

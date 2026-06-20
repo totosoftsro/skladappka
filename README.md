@@ -21,6 +21,9 @@ prohlížeč (počítač i mobil).
   Záporný stav (výdej do mínusu) je povolen.
 - **Ceny a hodnota skladu**, minimální zásoby se stavy 🟢/🟠/🔴, filtry
   „pod limitem“ / „vyprodáno“.
+- **Dodavatelé + návrh doobjednání** — co je pod minimem, kolik dokoupit a od
+  koho, seskupené podle dodavatele s dodací lhůtou a odhadem nákupu; export
+  objednávky do CSV.
 - **Přihlašování uživatelů** (admin / operátor), jméno se zapisuje ke každému
   pohybu. Kompletní **historie pohybů**.
 - **Undo** posledního pohybu jedním klikem.

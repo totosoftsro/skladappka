@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.4" />
+  <link rel="stylesheet" href="style.css?v=1.1.0" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#347d4f" />
@@ -30,6 +30,10 @@
       <button class="nav-item active" data-view="inventory" aria-label="Sklad">
         <svg class="ico" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         <span>Sklad</span>
+      </button>
+      <button class="nav-item" data-view="reorder" aria-label="Návrh doobjednání">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <span>Doobjednat</span>
       </button>
       <button class="nav-item" data-view="history" aria-label="Historie pohybů">
         <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -150,6 +154,11 @@
       </div>
     </section>
 
+    <!-- DOOBJEDNAT -->
+    <section id="view-reorder" class="view hidden">
+      <div id="reorder-content"></div>
+    </section>
+
     <!-- HISTORIE -->
     <section id="view-history" class="view hidden">
       <div class="panel">
@@ -167,6 +176,7 @@
     </section>
   </main>
 
+  <datalist id="suppliers"></datalist>
   <datalist id="units">
     <option value="ks"></option><option value="m"></option><option value="m²"></option><option value="m³"></option>
     <option value="cm"></option><option value="mm"></option><option value="kg"></option><option value="g"></option>
@@ -176,7 +186,7 @@
 
   <div id="overlay" class="overlay hidden"><div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modal-body"></div></div></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="barcode.js?v=1.0.4"></script>
-  <script src="app.js?v=1.0.4"></script>
+  <script src="barcode.js?v=1.1.0"></script>
+  <script src="app.js?v=1.1.0"></script>
 </body>
 </html>

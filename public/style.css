@@ -217,6 +217,13 @@ body.mode-set .step.step-alert input { border-color: var(--set); color: var(--se
 /* Panel + table */
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
 .panel-head { padding: 13px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--border); }
+/* Doobjednání */
+.reorder-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; font-size: 14px; }
+.reorder-group { margin-bottom: 14px; }
+.reorder-group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rg-name { font-weight: 700; }
+.rg-meta { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+.rg-need { color: var(--accent); }
 .table-scroll { overflow-x: auto; }
 table.grid { width: 100%; border-collapse: collapse; min-width: 840px; }
 .grid thead th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--text-faint); padding: 11px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }

@@ -263,3 +263,32 @@ test('import je jen pro admina (operator 403)', async () => {
   assert.strictEqual(r.status, 403);
   await api('/api/users/imp-op', { method: 'DELETE' });
 });
+
+test('dodavatele + navrh doobjednani', async () => {
+  const sup = (await json('/api/suppliers', { method: 'POST', body: JSON.stringify({ name: 'TestSup', contact: 'a@b.cz', lead_days: 5 }) })).body;
+  assert.ok(sup.id);
+  await json('/api/import', { method: 'POST', body: JSON.stringify({ rows: [
+    { code: 'RO-1', name: 'Pod minimem', quantity: '2', unit: 'ks', price: '10', min_stock: '12', supplier: 'TestSup' },
+    { code: 'RO-2', name: 'OK', quantity: '50', unit: 'ks', price: '5', min_stock: '10' },
+  ] }) });
+  const ro = (await json('/api/reorder')).body;
+  assert.ok(ro.count >= 1);
+  const g = ro.groups.find((x) => x.supplier === 'TestSup'); // jiné testy mohou nechat položky pod minimem
+  assert.ok(g, 'skupina dodavatele existuje');
+  assert.strictEqual(g.lead_days, 5);
+  const item = g.items.find((i) => i.code === 'RO-1');
+  assert.ok(item, 'RO-1 je v návrhu');
+  assert.strictEqual(item.suggested, 10); // 12 - 2
+  assert.strictEqual(item.cost, 100);     // 10 * 10
+  await api('/api/items/RO-1', { method: 'DELETE' });
+  await api('/api/items/RO-2', { method: 'DELETE' });
+  await api('/api/suppliers/' + sup.id, { method: 'DELETE' });
+});
+
+test('dodavatele meni jen admin (operator 403)', async () => {
+  await json('/api/users', { method: 'POST', body: JSON.stringify({ username: 'sup-op', display_name: 'S', password: 'heslo123', role: 'user' }) });
+  const c = (await fetch(B + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'sup-op', password: 'heslo123' }) })).headers.get('set-cookie').split(';')[0];
+  const r = await fetch(B + '/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: c }, body: JSON.stringify({ name: 'x' }) });
+  assert.strictEqual(r.status, 403);
+  await api('/api/users/sup-op', { method: 'DELETE' });
+});
