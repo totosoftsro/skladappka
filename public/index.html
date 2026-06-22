@@ -6,15 +6,16 @@
   <title>Sklad — evidence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=1.2.0" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#347d4f" />
+  <meta name="theme-color" content="#14181e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Sklad" />
 </head>
 <body>
+  <script>try{var c=JSON.parse(localStorage.getItem('sklad_cfg')||'{}');if((c.theme||'dark')!=='light')document.body.classList.add('theme-dark');}catch(e){document.body.classList.add('theme-dark');}</script>
   <h1 class="sr-only">Skladová evidence</h1>
 
   <!-- HORNÍ LIŠTA -->
@@ -186,7 +187,7 @@
 
   <div id="overlay" class="overlay hidden"><div class="modal" id="modal" role="dialog" aria-modal="true"><div id="modal-body"></div></div></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="barcode.js?v=1.1.0"></script>
-  <script src="app.js?v=1.1.0"></script>
+  <script src="barcode.js?v=1.2.0"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ const ICON = {
 function icon(name, cls = 'ico') { return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[name] || ''}</svg>`; }
 
 /* ---------- Lokální nastavení (prohlížeč) ---------- */
-const DEF = { currency: 'Kč', sound: true, theme: 'light', silenceMs: 90, fastAvg: 70, labelType: 'barcode' };
+const DEF = { currency: 'Kč', sound: true, theme: 'dark', silenceMs: 90, fastAvg: 70, labelType: 'barcode' };
 let cfg = { ...DEF, ...JSON.parse(localStorage.getItem('sklad_cfg') || '{}') };
 function saveCfg() { localStorage.setItem('sklad_cfg', JSON.stringify(cfg)); }
 
@@ -76,7 +76,7 @@ function applyTheme() {
   document.body.classList.toggle('theme-dark', cfg.theme === 'dark');
   $('#btn-theme').innerHTML = icon(cfg.theme === 'dark' ? 'sun' : 'moon');
   const tc = document.querySelector('meta[name="theme-color"]');
-  if (tc) tc.setAttribute('content', cfg.theme === 'dark' ? '#161c17' : '#347d4f');
+  if (tc) tc.setAttribute('content', '#14181e');
 }
 $('#btn-theme').addEventListener('click', () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); applyTheme(); });
 
