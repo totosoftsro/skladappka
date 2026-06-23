@@ -538,7 +538,11 @@ $('#btn-add').addEventListener('click', () => {
 async function openSettings() {
   let adminHtml = '';
   if (currentUser.role === 'admin') {
-    const [users, st, suppliers] = await Promise.all([api('/api/users').catch(() => []), api('/api/settings').catch(() => ({})), api('/api/suppliers').catch(() => [])]);
+    const [users, st, suppliers, backups] = await Promise.all([api('/api/users').catch(() => []), api('/api/settings').catch(() => ({})), api('/api/suppliers').catch(() => []), api('/api/backups').catch(() => ({ files: [] }))]);
+    const fmtKb = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB');
+    const bakRows = (backups.files || []).slice(0, 6).map((f) => `
+      <div class="user-row"><span class="code">${esc(f.name)}</span> <span class="u-role user">${fmtKb(f.size)}</span><span class="spacer"></span>
+        <span class="sub">${esc(new Date(f.created_at).toLocaleString('cs-CZ'))}</span></div>`).join('');
     const supRows = suppliers.map((s) => `
       <div class="user-row"><span class="u-rname">${esc(s.name)}</span>${s.contact ? ` <span class="code">${esc(s.contact)}</span>` : ''}
         ${s.lead_days > 0 ? `<span class="u-role user">${s.lead_days} dní</span>` : ''}<span class="spacer"></span>
@@ -567,6 +571,11 @@ async function openSettings() {
         ${field('Dodací lhůta (dní)', 'ns-lead', 0, 'number', 'min="0"')}<div class="fld"></div>
       </div>
       <div class="modal-actions"><span class="spacer"></span><button class="btn" id="ns-add">${icon('plus')} Přidat dodavatele</button></div>
+
+      <div class="m-section-title">Zálohy databáze</div>
+      <p class="hint">Automatická záloha běží na pozadí do složky <span class="code">DATA_DIR/backups</span>. Poslední zálohy:</p>
+      <div id="bak-list">${bakRows || '<div class="hint">Zatím žádná záloha — vytvoř první tlačítkem níže.</div>'}</div>
+      <div class="modal-actions"><a class="btn" href="/api/backup.json">${icon('download')} Stáhnout JSON</a><span class="spacer"></span><button class="btn" id="bak-now">${icon('download')} Zálohovat teď</button></div>
 
       <div class="m-section-title">E-mailová upozornění (pod minimum)</div>
       <div class="switch-row"><div><div class="lab">Posílat upozornění e-mailem</div><div class="sub">Když zásoba klesne pod minimum</div></div><input id="ml-enabled" type="checkbox" aria-label="Posílat upozornění e-mailem" ${st.enabled ? 'checked' : ''}></div>
@@ -636,6 +645,7 @@ function wireAdminSettings() {
     catch (err) { toast(err.message, 'err'); }
   };
   $$('[data-delsup]').forEach((b) => b.onclick = async () => { if (!confirm('Smazat dodavatele?')) return; try { await api('/api/suppliers/' + b.dataset.delsup, { method: 'DELETE' }); toast('Smazáno', 'ok'); await loadSuppliers(); openSettings(); } catch (err) { toast(err.message, 'err'); } });
+  $('#bak-now').onclick = async () => { const b = $('#bak-now'); b.disabled = true; try { const r = await api('/api/backup/now', { method: 'POST' }); toast('Záloha vytvořena: ' + r.file, 'ok'); openSettings(); } catch (err) { toast(err.message, 'err'); b.disabled = false; } };
   const saveMail = async () => api('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: $('#ml-enabled').checked, host: $('#ml-host').value.trim(), port: parseInt($('#ml-port').value, 10) || 587, secure: $('#ml-secure').checked, user: $('#ml-user').value.trim(), pass: $('#ml-pass').value, from: $('#ml-from').value.trim(), to: $('#ml-to').value.trim() }) });
   $('#ml-save').onclick = async () => { try { await saveMail(); toast('Nastavení e-mailu uloženo', 'ok'); } catch (err) { toast(err.message, 'err'); } };
   $('#ml-test').onclick = async () => { try { await saveMail(); await api('/api/alert/test', { method: 'POST' }); toast('Testovací e-mail odeslán', 'ok'); } catch (err) { toast(err.message, 'err'); } };

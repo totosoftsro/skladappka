@@ -9,10 +9,11 @@ const crypto = require('crypto');
 const express = require('express');
 const QRCode = require('qrcode');
 const compression = require('compression');
-const { db, initDb } = require('./db');
+const { db, initDb, DATA_DIR } = require('./db');
 const { lookupProduct } = require('./lookup');
 const auth = require('./auth');
 const mail = require('./mail');
+const backup = require('./backup');
 
 const VERSION = require('./package.json').version;
 const PORT = Number(process.env.PORT) || 3000;
@@ -83,6 +84,8 @@ const seeded = auth.seedAdmin();
 // Periodická údržba: úklid expirovaných sezení (denně) a zápis WAL (hodinově)
 setInterval(() => { try { auth.cleanupSessions(); } catch {} }, 24 * 3600 * 1000).unref();
 setInterval(() => { try { db.pragma('wal_checkpoint(PASSIVE)'); } catch {} }, 3600 * 1000).unref();
+// Automatické zálohy (BACKUP_INTERVAL_HOURS=0 je vypne)
+backup.scheduleBackups(db, DATA_DIR);
 
 const nowIso = () => new Date().toISOString();
 const round3 = (n) => { const x = Number(n); return Number.isFinite(x) ? Math.round(x * 1000) / 1000 : 0; };
@@ -453,6 +456,20 @@ app.get('/api/backup.json', (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="sklad-zaloha.json"');
   res.json({ app: 'skladappka', exported_at: nowIso(), items: db.prepare('SELECT * FROM items').all(), movements: db.prepare('SELECT * FROM movements').all() });
 });
+/* ---- Automatické zálohy: výpis a ruční spuštění (admin) ---- */
+app.get('/api/backups', auth.requireAdmin, (req, res) => {
+  const dir = backup.backupsDir(DATA_DIR);
+  const files = backup.listBackups(dir).reverse().map((name) => {
+    let size = 0, created_at = '';
+    try { const st = require('fs').statSync(require('path').join(dir, name)); size = st.size; created_at = st.mtime.toISOString(); } catch { /* ignore */ }
+    return { name, size, created_at };
+  });
+  res.json({ files, count: files.length, dir });
+});
+app.post('/api/backup/now', auth.requireAdmin, wrap(async (req, res) => {
+  const file = await backup.runBackup(db, DATA_DIR, Math.max(1, Number(process.env.BACKUP_KEEP ?? 14)));
+  res.json({ ok: true, file: require('path').basename(file) });
+}));
 /* ---- Hromadný import položek z CSV (admin) ---- */
 // Tělo: { rows: [{ code, name?, quantity?, unit?, price?, min_stock?, category?, location?, supplier?, note? }] }
 // Existující kód aktualizuje (jen vyplněná pole), nový zakládá. Nastaví-li se množství,

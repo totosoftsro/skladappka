@@ -102,4 +102,4 @@ function initDb() {
   ensureColumns('movements', [['user', "user TEXT NOT NULL DEFAULT ''"]]);
 }
 
-module.exports = { db, initDb };
+module.exports = { db, initDb, DATA_DIR };

@@ -31,6 +31,8 @@ prohlížeč (počítač i mobil).
   jednotlivě i hromadně dle filtru.
 - **E-mailová upozornění** při poklesu pod minimum (vlastní SMTP) + ruční report.
 - **Export** skladu a pohybů do CSV (Excel, česká locale), **záloha/obnova** JSON.
+- **Automatické zálohy** databáze na pozadí (konzistentní snapshot, retence)
+  + ruční „Zálohovat teď" v Nastavení.
 - **Mobilní rozhraní** (karty, spodní listy) + přidání na plochu (PWA, bez offline režimu).
 - Tmavý režim, čeština. Jediné externí závislosti za běhu: vyhledávání názvů
   zboží a webové fonty (Google Fonts) — bez nich appka funguje a použije
@@ -64,11 +66,18 @@ Ostatní ve firemní síti otevřou druhou adresu v prohlížeči — nic neinst
 | Proměnná         | Výchozí       | Význam                                                |
 |------------------|---------------|-------------------------------------------------------|
 | `PORT`             | `3000`        | Port serveru                                          |
-| `DATA_DIR`         | `data/` vedle aplikace | Složka s databází (SQLite)                   |
+| `DATA_DIR`         | `data/` vedle aplikace | Složka s databází (SQLite) a zálohami (`backups/`) |
 | `TLS_KEY`, `TLS_CERT` | —          | Cesty k PEM souborům → server běží na HTTPS           |
 | `TRUST_PROXY`      | —             | `1` za reverzní proxy (správné IP, Secure cookie)     |
 | `DISABLE_LOOKUP`   | —             | `1` vypne dohledávání na internetu (offline provoz)   |
+| `LOOKUP_TIMEOUT_MS`| `4000`        | Časový limit jednoho dotazu na dohledání              |
 | `GOOGLE_BOOKS_KEY` | —             | volitelný klíč Google Books API (spolehlivější ISBN) |
+| `BACKUP_INTERVAL_HOURS` | `24`     | Interval automatických záloh; `0` je vypne            |
+| `BACKUP_KEEP`      | `14`          | Kolik posledních záloh ponechat (starší se mažou)     |
+| `BARCODE_API_URL`  | —             | Volitelný placený katalog: URL s `{code}` (viz níže)  |
+| `BARCODE_API_KEY`  | —             | Klíč → hlavička `Authorization: Bearer …`             |
+| `BARCODE_API_HEADERS` | —          | Volitelné JSON s hlavičkami, např. `{"x-api-key":"…"}` |
+| `BARCODE_API_MAP`  | —             | Volitelné JSON mapování polí odpovědi (viz níže)      |
 
 Endpoint **`GET /healthz`** vrací `{ ok, version }` — pro monitoring / supervisor
 (používá ho i Docker HEALTHCHECK).
@@ -94,10 +103,30 @@ docker run -d --name sklad -p 3000:3000 -v sklad-data:/data --restart unless-sto
 
 ## Zálohování
 
-- **Doporučeno:** v appce **Export → Záloha (JSON)** — konzistentní, obnovitelné
-  přes **Export → Obnovit ze zálohy…** (jen admin).
-- Souborová záloha: kopíruj `data/sklad.db` **včetně** `sklad.db-wal` (WAL
-  režim), ideálně po zastavení serveru — při ukončení se WAL zapíše automaticky.
+- **Automaticky:** server si sám dělá konzistentní snapshot databáze do
+  `DATA_DIR/backups/` (výchozí každých 24 h, drží posledních 14). Funguje
+  i za běhu (online `.backup()` SQLite). Interval/retenci řídí
+  `BACKUP_INTERVAL_HOURS` / `BACKUP_KEEP`. V **⚙️ Nastavení → Zálohy databáze**
+  je vidět seznam a tlačítko **Zálohovat teď**.
+- **Přenosná záloha:** v appce **Export → Záloha (JSON)** — obnovitelná přes
+  **Export → Obnovit ze zálohy…** (jen admin).
+- **Obnova ze snapshotu:** zastav server a zkopíruj zvolený
+  `backups/sklad-…​.db` na `data/sklad.db` (smaž případné `-wal`/`-shm`).
+
+## Spolehlivější dohledávání (volitelný placený katalog)
+
+Bezplatné zdroje pokrývají hlavně potraviny/kosmetiku/knihy. Pro obecné zboží
+lze zapojit placený katalog čárových kódů — má pak **nejvyšší prioritu**:
+
+```bash
+BARCODE_API_URL='https://api.poskytovatel.tld/v3/lookup?ean={code}'
+BARCODE_API_KEY='tvuj-klic'                      # → Authorization: Bearer …
+# když má jiný tvar odpovědi, namapuj pole (tečkové cesty):
+BARCODE_API_MAP='{"name":"product.title","image":"product.images.0","brand":"product.brand"}'
+```
+
+`{code}` se nahradí naskenovaným kódem. Bez mapování se zkusí běžná pole
+(`title`/`name`/`product_name`, `brand`, `category`, `image`/`images.0`).
 
 ## Import z CSV
 

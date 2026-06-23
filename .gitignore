@@ -10,5 +10,6 @@ data/
 
 # AI nástroj (lokální)
 .claude/
-# env soubory
+# env soubory (ukázku .env.example ale verzujeme)
 .env*
+!.env.example

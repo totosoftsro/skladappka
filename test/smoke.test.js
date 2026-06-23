@@ -292,3 +292,29 @@ test('dodavatele meni jen admin (operator 403)', async () => {
   assert.strictEqual(r.status, 403);
   await api('/api/users/sup-op', { method: 'DELETE' });
 });
+
+test('souběh: 20 paralelních příjmů stejného kódu sedí na 20', async () => {
+  const code = 'CONC-1';
+  const reqs = Array.from({ length: 20 }, () =>
+    api('/api/scan', { method: 'POST', body: JSON.stringify({ code, mode: 'in', step: 1 }) }));
+  const ress = await Promise.all(reqs);
+  assert.ok(ress.every((r) => r.ok), 'všech 20 skenů prošlo');
+  const { body } = await json('/api/items?q=' + code);
+  const it = (body.items || body).find((x) => x.code === code);
+  assert.strictEqual(it.quantity, 20);
+});
+
+test('zálohy: ruční spuštění (admin) vytvoří soubor, výpis ho ukáže; operátor 403', async () => {
+  const run = await json('/api/backup/now', { method: 'POST' });
+  assert.strictEqual(run.status, 200);
+  assert.match(run.body.file, /^sklad-\d{8}-\d{6}\.db$/);
+  const list = await json('/api/backups');
+  assert.ok(list.body.files.some((f) => f.name === run.body.file), 'záloha je ve výpisu');
+  assert.ok(list.body.files[0].size > 0, 'záloha má nenulovou velikost');
+
+  await json('/api/users', { method: 'POST', body: JSON.stringify({ username: 'bak-op', display_name: 'B', password: 'heslo123', role: 'user' }) });
+  const c = (await fetch(B + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'bak-op', password: 'heslo123' }) })).headers.get('set-cookie').split(';')[0];
+  const r = await fetch(B + '/api/backup/now', { method: 'POST', headers: { Cookie: c } });
+  assert.strictEqual(r.status, 403);
+  await api('/api/users/bak-op', { method: 'DELETE' });
+});
