@@ -77,7 +77,7 @@ function applyTheme() {
   document.body.classList.toggle('theme-dark', cfg.theme === 'dark');
   $('#btn-theme').innerHTML = icon(cfg.theme === 'dark' ? 'sun' : 'moon');
   const tc = document.querySelector('meta[name="theme-color"]');
-  if (tc) tc.setAttribute('content', '#14181e');
+  if (tc) tc.setAttribute('content', '#0b111e');
 }
 $('#btn-theme').addEventListener('click', () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); applyTheme(); });
 

@@ -4,8 +4,8 @@
   "description": "Evidence skladu s čtečkou čárových kódů",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0f13",
-  "theme_color": "#14181e",
+  "background_color": "#070b13",
+  "theme_color": "#0b111e",
   "lang": "cs",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }

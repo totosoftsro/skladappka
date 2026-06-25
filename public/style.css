@@ -1,83 +1,83 @@
 /* ============ Design tokens ============ */
 /* Topbar = grafitová „konzole“, stejná v obou režimech (identita appky). */
 :root {
-  --sidebar: #14181e;
-  --sidebar-2: #1f242d;
-  --sidebar-text: #cdd5e1;
-  --sidebar-muted: #7d8694;
-  --sidebar-accent: #34d399;
-  --font-display: "Bricolage Grotesque", "Instrument Sans", sans-serif;
+  --sidebar: hsl(222 47% 8%);
+  --sidebar-2: hsl(222 38% 15%);
+  --sidebar-text: hsl(213 28% 86%);
+  --sidebar-muted: hsl(215 16% 60%);
+  --sidebar-accent: hsl(227 90% 66%);
+  --font-display: "Space Grotesk", "Instrument Sans", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --r: 13px;
   --r-sm: 9px;
 
-  /* Světlý režim (čistá, chladná alternativa se stejným emeraldem) */
-  --bg: #eef1f5;
+  /* Světlý režim — chladná firemní paleta TOTOSOFT */
+  --bg: hsl(228 17% 93%);
   --surface: #ffffff;
-  --surface-2: #f6f8fa;
-  --surface-3: #eceff4;
-  --border: #e3e8ee;
-  --border-strong: #d2d9e2;
-  --text: #161b24;
-  --text-muted: #58616e;
-  --text-faint: #8993a1;
-  --accent: #0d9b68;
-  --accent-press: #0b885b;
-  --accent-weak: #e2f5ee;
+  --surface-2: hsl(228 24% 97%);
+  --surface-3: hsl(228 16% 92%);
+  --border: hsl(214 32% 88%);
+  --border-strong: hsl(214 26% 80%);
+  --text: hsl(222 47% 12%);
+  --text-muted: hsl(222 12% 40%);
+  --text-faint: hsl(222 10% 52%);
+  --accent: hsl(230 89% 46%);
+  --accent-press: hsl(230 89% 40%);
+  --accent-weak: hsl(230 89% 95%);
   --accent-text: #ffffff;
-  --accent-glow: rgba(13, 155, 104, .10);
-  --in: #0d9b68;   --in-weak: #e2f5ee;
-  --out: #c2620a;  --out-weak: #fbeede;
-  --set: #1f87c4;  --set-weak: #e3f1fa;
-  --danger: #cf3b3b; --danger-weak: #fbe7e7;
-  --warn: #9a6b08; --warn-weak: #f8efd9;
-  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-glow: hsl(230 89% 50% / .12);
+  --orange: hsl(23 100% 50%);
+  --in: hsl(230 89% 46%);   --in-weak: hsl(230 89% 95%);
+  --out: hsl(23 100% 44%);  --out-weak: hsl(23 100% 94%);
+  --set: hsl(215 28% 40%);  --set-weak: hsl(215 30% 93%);
+  --danger: hsl(0 72% 48%); --danger-weak: hsl(0 80% 96%);
+  --warn: hsl(33 92% 42%);  --warn-weak: hsl(36 95% 92%);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
-  --shadow-sm: 0 1px 2px rgba(20, 30, 48, .06);
-  --shadow-md: 0 8px 28px -12px rgba(20, 30, 48, .18), 0 2px 6px -3px rgba(20, 30, 48, .10);
-  --shadow-pop: 0 18px 48px -16px rgba(20, 30, 48, .30);
-  --edge: linear-gradient(180deg, rgba(22, 27, 36, .13), rgba(22, 27, 36, .03));
-  --ambient: 0 20px 54px -26px rgba(13, 155, 104, .26);
-  --gold: #a9803f;
-  --noise-opacity: .025;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .07);
+  --shadow-md: 0 8px 28px -12px rgba(15, 23, 42, .18), 0 2px 6px -3px rgba(15, 23, 42, .10);
+  --shadow-pop: 0 18px 48px -16px rgba(15, 23, 42, .30);
+  --edge: linear-gradient(180deg, rgba(15, 23, 42, .12), rgba(15, 23, 42, .03));
+  --ambient: 0 18px 50px -28px hsl(230 89% 46% / .20);
+  --noise-opacity: .02;
 }
-/* Tmavá prémiová konzole (výchozí) */
+/* Tmavé téma — firemní navy (podle dark tokenů totosoft-trade.cz) */
 body.theme-dark {
-  --bg: #0d0f13;
-  --surface: #16191f;
-  --surface-2: #111419;
-  --surface-3: #1c2128;
-  --border: rgba(255, 255, 255, .07);
-  --border-strong: rgba(255, 255, 255, .14);
-  --text: #e8edf4;
-  --text-muted: #99a3b2;
-  --text-faint: #8b95a5;
-  --accent: #34d399;
-  --accent-press: #4ce0a3;
-  --accent-weak: rgba(52, 211, 153, .13);
-  --accent-text: #04160d;
-  --accent-glow: rgba(52, 211, 153, .16);
-  --in: #34d399;   --in-weak: rgba(52, 211, 153, .13);
-  --out: #f59e0b;  --out-weak: rgba(245, 158, 11, .13);
-  --set: #38bdf8;  --set-weak: rgba(56, 189, 248, .13);
-  --danger: #f87171; --danger-weak: rgba(248, 113, 113, .13);
-  --warn: #fbbf24; --warn-weak: rgba(251, 191, 36, .13);
-  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent);
-  --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 26px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+  --bg: hsl(222 47% 6%);
+  --surface: hsl(222 39% 10%);
+  --surface-2: hsl(222 44% 8%);
+  --surface-3: hsl(217 32% 16%);
+  --border: rgba(255, 255, 255, .08);
+  --border-strong: rgba(255, 255, 255, .16);
+  --text: hsl(210 40% 96%);
+  --text-muted: hsl(214 18% 66%);
+  --text-faint: hsl(214 14% 57%);
+  --accent: hsl(228 90% 62%);
+  --accent-press: hsl(228 95% 70%);
+  --accent-weak: hsl(228 90% 62% / .15);
+  --accent-text: #ffffff;
+  --accent-glow: hsl(228 90% 60% / .18);
+  --orange: hsl(24 100% 58%);
+  --in: hsl(228 90% 64%);   --in-weak: hsl(228 90% 62% / .15);
+  --out: hsl(24 100% 58%);  --out-weak: hsl(24 100% 58% / .15);
+  --set: hsl(214 24% 68%);  --set-weak: hsl(214 24% 66% / .14);
+  --danger: hsl(0 84% 68%); --danger-weak: hsl(0 84% 68% / .15);
+  --warn: hsl(40 96% 58%);  --warn-weak: hsl(40 96% 58% / .15);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent), 0 0 26px -8px color-mix(in srgb, var(--accent) 55%, transparent);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
   --shadow-md: 0 12px 34px -14px rgba(0, 0, 0, .72);
   --shadow-pop: 0 24px 60px -18px rgba(0, 0, 0, .8);
-  --edge: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .035));
-  --ambient: 0 26px 72px -28px rgba(52, 211, 153, .34);
-  --gold: #d8c08a;
-  --noise-opacity: .04;
+  --edge: linear-gradient(180deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .03));
+  --ambient: 0 22px 64px -32px hsl(228 90% 56% / .30);
+  --noise-opacity: .03;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Space Grotesk", "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   color: var(--text);
   background: radial-gradient(1100px 460px at 50% -240px, var(--accent-glow), transparent 62%), var(--bg);
@@ -98,7 +98,7 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; ove
 /* ============ Horní lišta ============ */
 .topbar { position: relative; z-index: 20; display: flex; align-items: center; gap: 22px; padding: 10px 22px; background: linear-gradient(180deg, color-mix(in srgb, var(--sidebar) 86%, #fff 0%), var(--sidebar)); color: var(--sidebar-text); flex: none; border-bottom: 1px solid rgba(255,255,255,.06); box-shadow: 0 1px 0 rgba(0,0,0,.4), 0 10px 30px -22px rgba(0,0,0,.9); }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, color-mix(in srgb, var(--sidebar-accent) 88%, #fff), var(--sidebar-accent)); color: #04160d; box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 6px 18px -6px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
+.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, color-mix(in srgb, var(--sidebar-accent) 80%, #fff), var(--sidebar-accent)); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 6px 18px -6px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
 .brand-mark .ico { width: 20px; height: 20px; stroke-width: 1.9; }
 .brand-name { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: #fff; white-space: nowrap; }
 .brand-name b { font-weight: 700; color: var(--sidebar-muted); }
@@ -390,7 +390,7 @@ body::after {
   background-origin: border-box;
 }
 
-/* Topbar jako sklo s emeraldovou linkou pod ním */
+/* Topbar jako sklo s modrou (brand) linkou pod ním */
 .topbar {
   background:
     linear-gradient(180deg, rgba(255,255,255,.05), transparent 42%),
@@ -403,7 +403,7 @@ body::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sidebar-accent) 55%, transparent), transparent);
 }
-.brand-name { background: linear-gradient(180deg, #fff, #cfe9da); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.brand-name { background: linear-gradient(180deg, #fff, #c7d2fe); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .brand-mark { box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 22px -6px color-mix(in srgb, var(--sidebar-accent) 70%, transparent), 0 0 30px -8px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
 
 /* Hero – pult s gradientovým okrajem, hloubkou a ambientní září */
@@ -450,7 +450,7 @@ body::after {
 .stat.clickable:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .nav-item:hover { transform: translateY(-1px); }
 
-/* Akcent na číslech v přehledu – hodnota skladu zazáří emeraldem */
+/* Akcent na číslech v přehledu – hodnota skladu zazáří brand modrou */
 #stat-value, #cur-label { color: var(--accent); }
 .stat-value { text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 14%, transparent); }
 
