@@ -36,6 +36,10 @@
   --shadow-sm: 0 1px 2px rgba(20, 30, 48, .06);
   --shadow-md: 0 8px 28px -12px rgba(20, 30, 48, .18), 0 2px 6px -3px rgba(20, 30, 48, .10);
   --shadow-pop: 0 18px 48px -16px rgba(20, 30, 48, .30);
+  --edge: linear-gradient(180deg, rgba(22, 27, 36, .13), rgba(22, 27, 36, .03));
+  --ambient: 0 20px 54px -26px rgba(13, 155, 104, .26);
+  --gold: #a9803f;
+  --noise-opacity: .025;
 }
 /* Tmavá prémiová konzole (výchozí) */
 body.theme-dark {
@@ -63,6 +67,10 @@ body.theme-dark {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
   --shadow-md: 0 12px 34px -14px rgba(0, 0, 0, .72);
   --shadow-pop: 0 24px 60px -18px rgba(0, 0, 0, .8);
+  --edge: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .035));
+  --ambient: 0 26px 72px -28px rgba(52, 211, 153, .34);
+  --gold: #d8c08a;
+  --noise-opacity: .04;
 }
 
 * { box-sizing: border-box; }
@@ -360,6 +368,106 @@ body:not(.is-admin) #btn-restore { display: none; }
 .topbar { padding-top: calc(10px + env(safe-area-inset-top)); padding-left: calc(22px + env(safe-area-inset-left)); padding-right: calc(22px + env(safe-area-inset-right)); }
 .hero { padding-left: calc(24px + env(safe-area-inset-left)); padding-right: calc(24px + env(safe-area-inset-right)); }
 .toast { bottom: calc(22px + env(safe-area-inset-bottom)); }
+
+/* ============================================================
+   Luxury layer — bohatší řemeslo nad prémiovou konzolí
+   (jen vizuální vrstva; struktura a třídy beze změny)
+   ============================================================ */
+
+/* Jemný filmový šum přes celou plochu – zabíjí banding v gradientech
+   a dodává „hmatatelnost". Nezachytává kliknutí, drží se pod lištou. */
+body::after {
+  content: "";
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* Společné: světelný gradientový okraj (nahoře jasnější, dole mizí). */
+.hero, .panel, .modal, .scan-field, .menu-list {
+  border: 1px solid transparent;
+  background-origin: border-box;
+}
+
+/* Topbar jako sklo s emeraldovou linkou pod ním */
+.topbar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.05), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--sidebar) 92%, #fff), var(--sidebar));
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 1px 0 rgba(0,0,0,.5), 0 14px 36px -26px rgba(0,0,0,.95);
+}
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sidebar-accent) 55%, transparent), transparent);
+}
+.brand-name { background: linear-gradient(180deg, #fff, #cfe9da); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.brand-mark { box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 22px -6px color-mix(in srgb, var(--sidebar-accent) 70%, transparent), 0 0 30px -8px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
+
+/* Hero – pult s gradientovým okrajem, hloubkou a ambientní září */
+.hero {
+  background:
+    radial-gradient(720px 250px at 50% -70px, var(--accent-glow), transparent 70%) padding-box,
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--bg)), var(--surface-2)) padding-box,
+    var(--edge) border-box;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Skenovací pole – jemný vnitřní lesk + gradientový okraj */
+.scan-field {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #fff), var(--surface)) padding-box, var(--edge) border-box;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--shadow-sm);
+}
+.scan-field.focus { box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,.06); }
+
+/* Panely / modály / menu – luxusní okraj + ambientní stín */
+.panel {
+  background: var(--surface) padding-box, var(--edge) border-box;
+  box-shadow: var(--shadow-md), var(--ambient);
+}
+.modal {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, #fff), var(--surface)) padding-box, var(--edge) border-box;
+  box-shadow: var(--shadow-pop), var(--ambient);
+}
+.menu-list { background: var(--surface) padding-box, var(--edge) border-box; }
+
+/* Primární tlačítko – přeliv + světelný „sheen" + nadzvednutí */
+.btn.primary { position: relative; overflow: hidden; }
+.btn.primary::after {
+  content: ""; position: absolute; top: 0; left: -120%; width: 60%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
+  transform: skewX(-18deg); transition: left .55s ease;
+}
+.btn.primary:hover::after { left: 140%; }
+.btn.primary:hover { transform: translateY(-1px); }
+.btn.primary:active { transform: translateY(0); }
+
+/* Mikro-pohyb: jemné nadzvednutí interaktivních prvků */
+.btn, .nav-item, .stat.clickable, .seg-btn, .top-btn, .user-card { transition: transform .14s ease, background .14s, border-color .14s, box-shadow .14s, color .14s; }
+.btn:hover { transform: translateY(-1px); }
+.stat.clickable:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.nav-item:hover { transform: translateY(-1px); }
+
+/* Akcent na číslech v přehledu – hodnota skladu zazáří emeraldem */
+#stat-value, #cur-label { color: var(--accent); }
+.stat-value { text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* Sekční nadpisy v nastavení – jemné prostrkání pro „klid a luxus" */
+.m-section-title { letter-spacing: .08em; }
+
+/* Tabulka – vyvýšení řádku při najetí (desktop) */
+@media (min-width: 641px) {
+  .grid tbody tr { transition: background .14s, box-shadow .14s; }
+  .grid tbody tr:hover td { box-shadow: inset 0 0 0 99px color-mix(in srgb, var(--accent) 4%, transparent); }
+}
+
+/* Vyladěné posuvníky pro tmavou */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 18%, transparent) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 16%, transparent); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 28%, transparent); background-clip: padding-box; }
 
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
