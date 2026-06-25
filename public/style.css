@@ -20,7 +20,7 @@
   --border-strong: hsl(214 26% 80%);
   --text: hsl(222 47% 12%);
   --text-muted: hsl(222 12% 40%);
-  --text-faint: hsl(222 10% 52%);
+  --text-faint: hsl(222 14% 43%);
   --accent: hsl(23 100% 50%);
   --accent-press: hsl(22 100% 44%);
   --accent-weak: hsl(23 100% 94%);
@@ -31,7 +31,7 @@
   --out: hsl(23 100% 44%);  --out-weak: hsl(23 100% 94%);
   --set: hsl(215 28% 40%);  --set-weak: hsl(215 30% 93%);
   --danger: hsl(0 72% 48%); --danger-weak: hsl(0 80% 96%);
-  --warn: hsl(33 92% 42%);  --warn-weak: hsl(36 95% 92%);
+  --warn: hsl(33 95% 34%);  --warn-weak: hsl(36 95% 92%);
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, .07);
@@ -352,8 +352,8 @@ table.grid { width: 100%; border-collapse: collapse; min-width: 840px; }
 
 /* Toast */
 .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: var(--text); color: var(--surface); padding: 11px 18px; border-radius: 11px; font-size: 13.5px; font-weight: 500; box-shadow: var(--shadow-pop); z-index: 70; animation: rise .18s ease; }
-.toast.err { background: var(--danger); color: #fff; }
-.toast.ok { background: var(--in); color: #fff; }
+.toast.err { background: hsl(0 68% 44%); color: #fff; }
+.toast.ok { background: hsl(214 80% 40%); color: #fff; }
 .toast button { border: 0; background: rgba(255,255,255,.18); color: #fff; font: inherit; font-weight: 600; font-size: 12.5px; padding: 6px 11px; border-radius: 7px; cursor: pointer; }
 .toast button:hover { background: rgba(255,255,255,.3); }
 
@@ -451,7 +451,8 @@ body::after {
 .nav-item:hover { transform: translateY(-1px); }
 
 /* Akcent na číslech v přehledu – hodnota skladu zazáří brand modrou */
-#stat-value, #cur-label { color: var(--accent); }
+/* Oranžová hodnota jen v tmavém (na světlém by měla nízký kontrast) */
+body.theme-dark #stat-value, body.theme-dark #cur-label { color: var(--accent); }
 .stat-value { text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 14%, transparent); }
 
 /* Sekční nadpisy v nastavení – jemné prostrkání pro „klid a luxus" */
