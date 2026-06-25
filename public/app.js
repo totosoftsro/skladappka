@@ -16,6 +16,7 @@ const ICON = {
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   key: '<circle cx="8" cy="15" r="5"/><path d="m11.5 11.5 8-8M17 7l2 2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
 };
 function icon(name, cls = 'ico') { return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[name] || ''}</svg>`; }
 
@@ -86,7 +87,11 @@ const FOCUSABLE = 'input,select,textarea,button,a[href],[tabindex]:not([tabindex
 function openModal(html, locked = false) {
   modalLocked = locked;
   modalReturnFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
-  $('#modal-body').innerHTML = html;
+  const body = $('#modal-body'); body.innerHTML = html;
+  // Přístupný název dialogu: naváž na jeho nadpis (nebo fallback popisek).
+  const modal = $('#modal'), h = body.querySelector('h2, h3');
+  if (h) { if (!h.id) h.id = 'modal-title'; modal.setAttribute('aria-labelledby', h.id); modal.removeAttribute('aria-label'); }
+  else { modal.removeAttribute('aria-labelledby'); modal.setAttribute('aria-label', 'Dialog'); }
   $('#overlay').classList.remove('hidden');
   const first = $('#modal').querySelector(FOCUSABLE);
   if (first) setTimeout(() => first.focus(), 30); // přesun fokusu do dialogu
@@ -182,7 +187,7 @@ stepEl.addEventListener('input', updateStepStyle);
 $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $$('.nav-item').forEach((b) => b.addEventListener('click', () => {
   state.view = b.dataset.view;
-  $$('.nav-item').forEach((x) => { const a = x === b; x.classList.toggle('active', a); x.setAttribute('aria-current', a ? 'page' : 'false'); });
+  $$('.nav-item').forEach((x) => { const a = x === b; x.classList.toggle('active', a); if (a) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current'); });
   $('#view-inventory').classList.toggle('hidden', state.view !== 'inventory');
   $('#view-history').classList.toggle('hidden', state.view !== 'history');
   $('#view-reorder').classList.toggle('hidden', state.view !== 'reorder');
@@ -539,10 +544,11 @@ async function openSettings() {
   let adminHtml = '';
   if (currentUser.role === 'admin') {
     const [users, st, suppliers, backups] = await Promise.all([api('/api/users').catch(() => []), api('/api/settings').catch(() => ({})), api('/api/suppliers').catch(() => []), api('/api/backups').catch(() => ({ files: [] }))]);
-    const fmtKb = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB');
+    const fmtKb = (n) => (!n || n < 0 ? '—' : n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB');
+    const bakWhen = (s) => (s ? new Date(s).toLocaleString('cs-CZ') : '—');
     const bakRows = (backups.files || []).slice(0, 6).map((f) => `
       <div class="user-row"><span class="code">${esc(f.name)}</span> <span class="u-role user">${fmtKb(f.size)}</span><span class="spacer"></span>
-        <span class="sub">${esc(new Date(f.created_at).toLocaleString('cs-CZ'))}</span></div>`).join('');
+        <span class="bak-when">${esc(bakWhen(f.created_at))}</span></div>`).join('');
     const supRows = suppliers.map((s) => `
       <div class="user-row"><span class="u-rname">${esc(s.name)}</span>${s.contact ? ` <span class="code">${esc(s.contact)}</span>` : ''}
         ${s.lead_days > 0 ? `<span class="u-role user">${s.lead_days} dní</span>` : ''}<span class="spacer"></span>

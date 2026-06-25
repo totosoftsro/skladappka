@@ -307,7 +307,7 @@ test('souběh: 20 paralelních příjmů stejného kódu sedí na 20', async () 
 test('zálohy: ruční spuštění (admin) vytvoří soubor, výpis ho ukáže; operátor 403', async () => {
   const run = await json('/api/backup/now', { method: 'POST' });
   assert.strictEqual(run.status, 200);
-  assert.match(run.body.file, /^sklad-\d{8}-\d{6}\.db$/);
+  assert.match(run.body.file, /^sklad-\d{8}-\d{6}-[0-9a-f]{4}\.db$/);
   const list = await json('/api/backups');
   assert.ok(list.body.files.some((f) => f.name === run.body.file), 'záloha je ve výpisu');
   assert.ok(list.body.files[0].size > 0, 'záloha má nenulovou velikost');

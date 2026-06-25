@@ -464,10 +464,10 @@ app.get('/api/backups', auth.requireAdmin, (req, res) => {
     try { const st = require('fs').statSync(require('path').join(dir, name)); size = st.size; created_at = st.mtime.toISOString(); } catch { /* ignore */ }
     return { name, size, created_at };
   });
-  res.json({ files, count: files.length, dir });
+  res.json({ files, count: files.length });
 });
 app.post('/api/backup/now', auth.requireAdmin, wrap(async (req, res) => {
-  const file = await backup.runBackup(db, DATA_DIR, Math.max(1, Number(process.env.BACKUP_KEEP ?? 14)));
+  const file = await backup.runBackup(db, DATA_DIR, backup.sanitizeKeep(Number(process.env.BACKUP_KEEP ?? 14)));
   res.json({ ok: true, file: require('path').basename(file) });
 }));
 /* ---- Hromadný import položek z CSV (admin) ---- */
@@ -589,15 +589,20 @@ app.put('/api/settings', auth.requireAdmin, (req, res) => {
   if (typeof b.pass === 'string' && b.pass !== '') mail.setSetting('mail_pass', b.pass); // heslo měň jen když je vyplněné
   res.json({ ok: true });
 });
-app.post('/api/alert/test', auth.requireAdmin, async (req, res) => {
+app.post('/api/alert/test', auth.requireAdmin, wrap(async (req, res) => {
   try { await mail.sendTest(); res.json({ ok: true }); } catch (e) { res.status(400).json({ error: e.message }); }
-});
-app.post('/api/alert/report', auth.requireAdmin, async (req, res) => {
+}));
+app.post('/api/alert/report', auth.requireAdmin, wrap(async (req, res) => {
   try { const r = await mail.sendLowStockReport(); res.json({ ok: true, count: r.count }); } catch (e) { res.status(400).json({ error: e.message }); }
-});
+}));
 
 // Neznámá API cesta → JSON 404 (ne SPA fallback)
 app.use('/api', (req, res) => res.status(404).json({ error: 'Neznámý endpoint' }));
+// Cokoli mimo /api a statiku → vrať appku (GET), ať uživatel nedostane holé HTML 404
+app.use((req, res) => {
+  if (req.method === 'GET' || req.method === 'HEAD') return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.status(404).type('text/plain').send('Nenalezeno');
+});
 
 // Centrální error handler – vždy JSON, nikdy stack trace ven
 app.use((err, req, res, next) => {

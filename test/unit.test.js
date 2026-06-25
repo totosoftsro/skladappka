@@ -110,7 +110,7 @@ test('runBackup: vytvoří konzistentní snapshot, který jde přečíst', async
 
     const dest = await backup.runBackup(db, dir, 14);
     assert.ok(fs.existsSync(dest), 'soubor zálohy existuje');
-    assert.match(path.basename(dest), /^sklad-\d{8}-\d{6}\.db$/);
+    assert.match(path.basename(dest), /^sklad-\d{8}-\d{6}-[0-9a-f]{4}\.db$/);
 
     const b = new Database(dest, { readonly: true });
     assert.equal(b.prepare('SELECT x FROM t').get().x, 42);
@@ -119,6 +119,48 @@ test('runBackup: vytvoří konzistentní snapshot, který jde přečíst', async
     db.close();
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('runBackup: dvě zálohy hned po sobě = dva různé soubory (žádná kolize)', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sklad-bak2-'));
+  const db = new Database(path.join(dir, 'sklad.db'));
+  try {
+    db.pragma('journal_mode = WAL');
+    db.exec('CREATE TABLE t (x INTEGER)');
+    db.prepare('INSERT INTO t VALUES (1)').run();
+    const [a, b] = await Promise.all([backup.runBackup(db, dir, 14), backup.runBackup(db, dir, 14)]);
+    assert.notEqual(a, b, 'různé názvy i ve stejné sekundě');
+    assert.equal(backup.listBackups(backup.backupsDir(dir)).length, 2);
+  } finally {
+    db.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('runBackup: retence přes runBackup nechá jen BACKUP_KEEP', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sklad-bak3-'));
+  const db = new Database(path.join(dir, 'sklad.db'));
+  try {
+    db.exec('CREATE TABLE t (x INTEGER)');
+    for (let i = 0; i < 4; i++) await backup.runBackup(db, dir, 2);
+    assert.equal(backup.listBackups(backup.backupsDir(dir)).length, 2);
+  } finally {
+    db.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('scheduleBackups: vypnuto (interval 0 / NaN) vrací null', () => {
+  assert.equal(backup.scheduleBackups({}, '/tmp', { intervalHours: 0 }), null);
+  assert.equal(backup.scheduleBackups({}, '/tmp', { intervalHours: NaN }), null);
+});
+
+test('sanitizeKeep: nesmysl → 14, platné → celé číslo', () => {
+  assert.equal(backup.sanitizeKeep(5), 5);
+  assert.equal(backup.sanitizeKeep(0), 14);
+  assert.equal(backup.sanitizeKeep(NaN), 14);
+  assert.equal(backup.sanitizeKeep('abc'), 14);
+  assert.equal(backup.sanitizeKeep(3.9), 3);
 });
 
 test('prune: nechá jen posledních N záloh (nejnovější)', () => {
