@@ -5,7 +5,7 @@
   --sidebar-2: hsl(222 38% 15%);
   --sidebar-text: hsl(213 28% 86%);
   --sidebar-muted: hsl(215 16% 60%);
-  --sidebar-accent: hsl(227 90% 66%);
+  --sidebar-accent: hsl(24 100% 56%);
   --font-display: "Space Grotesk", "Instrument Sans", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --r: 13px;
@@ -21,13 +21,13 @@
   --text: hsl(222 47% 12%);
   --text-muted: hsl(222 12% 40%);
   --text-faint: hsl(222 10% 52%);
-  --accent: hsl(230 89% 46%);
-  --accent-press: hsl(230 89% 40%);
-  --accent-weak: hsl(230 89% 95%);
-  --accent-text: #ffffff;
-  --accent-glow: hsl(230 89% 50% / .12);
+  --accent: hsl(23 100% 50%);
+  --accent-press: hsl(22 100% 44%);
+  --accent-weak: hsl(23 100% 94%);
+  --accent-text: hsl(24 85% 13%);
+  --accent-glow: hsl(23 100% 50% / .14);
   --orange: hsl(23 100% 50%);
-  --in: hsl(230 89% 46%);   --in-weak: hsl(230 89% 95%);
+  --in: hsl(214 90% 46%);   --in-weak: hsl(214 90% 94%);
   --out: hsl(23 100% 44%);  --out-weak: hsl(23 100% 94%);
   --set: hsl(215 28% 40%);  --set-weak: hsl(215 30% 93%);
   --danger: hsl(0 72% 48%); --danger-weak: hsl(0 80% 96%);
@@ -38,7 +38,7 @@
   --shadow-md: 0 8px 28px -12px rgba(15, 23, 42, .18), 0 2px 6px -3px rgba(15, 23, 42, .10);
   --shadow-pop: 0 18px 48px -16px rgba(15, 23, 42, .30);
   --edge: linear-gradient(180deg, rgba(15, 23, 42, .12), rgba(15, 23, 42, .03));
-  --ambient: 0 18px 50px -28px hsl(230 89% 46% / .20);
+  --ambient: 0 18px 50px -28px hsl(23 100% 50% / .20);
   --noise-opacity: .02;
 }
 /* Tmavé téma — firemní navy (podle dark tokenů totosoft-trade.cz) */
@@ -52,13 +52,13 @@ body.theme-dark {
   --text: hsl(210 40% 96%);
   --text-muted: hsl(214 18% 66%);
   --text-faint: hsl(214 14% 57%);
-  --accent: hsl(228 90% 62%);
-  --accent-press: hsl(228 95% 70%);
-  --accent-weak: hsl(228 90% 62% / .15);
-  --accent-text: #ffffff;
-  --accent-glow: hsl(228 90% 60% / .18);
+  --accent: hsl(24 100% 56%);
+  --accent-press: hsl(26 100% 62%);
+  --accent-weak: hsl(24 100% 56% / .16);
+  --accent-text: hsl(24 90% 10%);
+  --accent-glow: hsl(24 100% 56% / .20);
   --orange: hsl(24 100% 58%);
-  --in: hsl(228 90% 64%);   --in-weak: hsl(228 90% 62% / .15);
+  --in: hsl(214 90% 62%);   --in-weak: hsl(214 90% 60% / .16);
   --out: hsl(24 100% 58%);  --out-weak: hsl(24 100% 58% / .15);
   --set: hsl(214 24% 68%);  --set-weak: hsl(214 24% 66% / .14);
   --danger: hsl(0 84% 68%); --danger-weak: hsl(0 84% 68% / .15);
@@ -69,7 +69,7 @@ body.theme-dark {
   --shadow-md: 0 12px 34px -14px rgba(0, 0, 0, .72);
   --shadow-pop: 0 24px 60px -18px rgba(0, 0, 0, .8);
   --edge: linear-gradient(180deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .03));
-  --ambient: 0 22px 64px -32px hsl(228 90% 56% / .30);
+  --ambient: 0 22px 64px -32px hsl(24 100% 54% / .30);
   --noise-opacity: .03;
 }
 
@@ -98,7 +98,7 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; ove
 /* ============ Horní lišta ============ */
 .topbar { position: relative; z-index: 20; display: flex; align-items: center; gap: 22px; padding: 10px 22px; background: linear-gradient(180deg, color-mix(in srgb, var(--sidebar) 86%, #fff 0%), var(--sidebar)); color: var(--sidebar-text); flex: none; border-bottom: 1px solid rgba(255,255,255,.06); box-shadow: 0 1px 0 rgba(0,0,0,.4), 0 10px 30px -22px rgba(0,0,0,.9); }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, color-mix(in srgb, var(--sidebar-accent) 80%, #fff), var(--sidebar-accent)); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 6px 18px -6px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
+.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, color-mix(in srgb, var(--sidebar-accent) 82%, #fff), var(--sidebar-accent)); color: hsl(24 90% 12%); box-shadow: 0 0 0 1px rgba(255,255,255,.16) inset, 0 6px 18px -6px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
 .brand-mark .ico { width: 20px; height: 20px; stroke-width: 1.9; }
 .brand-name { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: #fff; white-space: nowrap; }
 .brand-name b { font-weight: 700; color: var(--sidebar-muted); }
@@ -403,7 +403,7 @@ body::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sidebar-accent) 55%, transparent), transparent);
 }
-.brand-name { background: linear-gradient(180deg, #fff, #c7d2fe); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.brand-name { background: linear-gradient(180deg, #fff, #ffd9b8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .brand-mark { box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 22px -6px color-mix(in srgb, var(--sidebar-accent) 70%, transparent), 0 0 30px -8px color-mix(in srgb, var(--sidebar-accent) 60%, transparent); }
 
 /* Hero – pult s gradientovým okrajem, hloubkou a ambientní září */
